@@ -1,10 +1,22 @@
 {% extends "base.html" %}
+{% import 'macro.html' as macros %}
+{% set cuser = current_user %}
 {% set title="Главная" %}
 
 {% block content %}
     <div class="col-lg-12 text-center">
-        <h1 class="mt-5">Авторизация пользователя</h1>
-        <p class="lead"></p>
+        <h2 class="mt-5">Система проверки лабораторных работ по программированию</h2>
+        <div class="row justify-content-md-center">
+            <div class="col-6">
+                {% if not cuser.is_authenticated %}
+                    <h2>Авторизация</h2>
+                        {% call macros.render_form(form, action_text='Войти', class_='login-form') %}
+                            {{ macros.render_field(form.username, label_visible=false, placeholder='Логин', type='text') }}
+                            {{ macros.render_field(form.password, label_visible=false, placeholder='Пароль', type='password') }}
+                        {% endcall %}
+                {% endif %}
+            </div>
+        </div>
         <ul class="list-unstyled">
           <li>Bootstrap 4.2.1</li>
           <li>jQuery 3.3.1</li>

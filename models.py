@@ -1,6 +1,6 @@
 from datetime import datetime
 from pony.orm import *
-
+from werkzeug.security import generate_password_hash, check_password_hash
 
 db = Database()
 
@@ -40,6 +40,13 @@ class User(db.Entity):
     password = Optional(str)
     email = Optional(str)
     password_resets = Set('PasswordReset')
+
+    @staticmethod
+    def generate_password(password):
+        return generate_password_hash(password)
+
+    def check_password(self, given_password):
+        return check_password_hash(self.password, given_password)
 
 
 class Student(User):

@@ -8,6 +8,8 @@
         <title>{{title}} - Система проверки лабораторных работ </title>
         <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
         <link href="//netdna.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
+        <link href="{{ url_for('static', filename='css/style.css') }}" type="text/css" rel="stylesheet">
+        <link href="{{ url_for('static', filename='css/custom_styles.css') }}" type="text/css" rel="stylesheet">
         <script src="//netdna.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js"></script>
         <script src="//code.jquery.com/jquery-1.11.1.min.js"></script>
         {% block custom_head %}
@@ -17,12 +19,8 @@
 
     {% include 'header.html' %}
     <body>
-        <div class="container">
-            <div class="row">
-                {% block content %}
-                {% endblock %}
-            </div>
-        </div>
+        {% block content %}
+        {% endblock %}
     {% include 'footer.html' %}
     </body>
 

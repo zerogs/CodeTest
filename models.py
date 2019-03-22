@@ -40,6 +40,17 @@ class User(db.Entity):
     password = Optional(str)
     email = Optional(str)
     password_resets = Set('PasswordReset')
+    reg_code = Required(str)
+    activated = Required(bool)
+
+    def is_authenticated(self):
+        return True
+
+    def is_anonymous(self):
+        return False
+
+    def get_id(self):
+        return str(self.id)
 
     @staticmethod
     def generate_password(password):
@@ -57,6 +68,7 @@ class Student(User):
 class Teacher(User):
     labs = Set(Lab)
     courses = Set('Course')
+    faculty = Optional(str)
 
 
 class Attempt(db.Entity):
@@ -88,3 +100,7 @@ class Course(db.Entity):
     groups = Set(Group)
     labs = Set(Lab)
     teacher = Required(Teacher)
+
+
+class Admin(User):
+    is_admin = Required(bool)

@@ -14,6 +14,7 @@
                             {{ macros.render_field(form.username, label_visible=false, placeholder='Логин', type='text') }}
                             {{ macros.render_field(form.password, label_visible=false, placeholder='Пароль', type='password') }}
                         {% endcall %}
+                    <a href="{{ url_for('enter_code') }}" type="button" class="btn btn-md btn-default">Первый вход</a>
                 {% endif %}
             </div>
         </div>

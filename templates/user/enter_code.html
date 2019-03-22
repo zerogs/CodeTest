@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% set cuser = current_user %}
+{% import 'macro.html' as macros %}
+{% set title="Ввод регистрационного кода" %}
+
+{% block content %}
+    <div class="col-lg-12 text-center">
+        <h2 class="mt-5">Введите регистрационный код</h2>
+        <div class="row justify-content-md-center">
+            <div class="col-3">
+                {% call macros.render_form(form,action_url=url_for('enter_code'), action_text='Продолжить', class_='reg_code-form') %}
+                    {{ macros.render_field(form.reg_code, label_visible=false, placeholder='Регистрационный код', type='text') }}
+                {% endcall %}
+            </div>
+        </div>
+        <ul class="list-unstyled">
+          <li>Bootstrap 4.2.1</li>
+          <li>jQuery 3.3.1</li>
+        </ul>
+    </div>
+{% endblock content %}

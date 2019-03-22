@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% set cuser = current_user %}
+{% set title="Администрирование" %}
+
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-md-3 col-md-pull-9">
+             <h2>Меню</h2>
+            <p>
+                <a class="btn btn-lg btn-primary btn-block" href="{{ url_for('create_teacher') }}" role="button" >Создать преподавателя</a>
+            </p>
+            <p>
+                <button type="submit" class = "btn btn-primary btn-block" value="pl">Настройка языков программирования</button>
+            </p>
+            <p>
+                <button type="submit" class = "btn btn-primary btn-block" value="modify">Редактирование пользователей</button>
+            </p>
+            <p>
+                <button type="submit" class = "btn btn-primary btn-block"value="empty">Кнопка 2</button>
+            </p>
+            </div>
+
+            <div class="col-md-9 col-md-push-3">
+                <div class="row">
+                    <h2>Последние действия</h2>
+                </div>
+                <ul class="list-group">
+                    <li class="list-group-item">Пользователь Петров создал объект Лабораторная работа N1</li>
+                    <li class="list-group-item">Пользователь Петров Пётр Петрович создал объект группа 1111</li>
+                    <li class="list-group-item">Пользователь Admin создал пользователя Петров Петр Петрович</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+{% endblock content %}

@@ -1,26 +1,110 @@
-{% extends "base.html" %}
-{% set cuser = current_user %}
-{% import 'macro.html' as macros %}
-{% set title="Администрирование" %}
-
-{% block content %}
-    <div class="col-lg-12 text-center">
-        <h2 class="mt-5">Создание учетной записи преподавателя</h2>
-        <div class="row justify-content-md-center">
-            <div class="col-6">
-                {% call macros.render_form(form, action_url=url_for('create_teacher') , action_text='Создать', class_='teacher-form') %}
-                    {{ macros.render_field(form.surname, label_visible=false, placeholder='Фамилия', type='text') }}
-                    {{ macros.render_field(form.name, label_visible=false, placeholder='Имя', type='text') }}
-                    {{ macros.render_field(form.patronymic, label_visible=false, placeholder='Отчество', type='text') }}
-                    {{ macros.render_field(form.faculty, label_visible=false, placeholder='Кафедра', type='text') }}
-                    {{ macros.render_field(form.reg_code, label_visible=false, placeholder='Регистрационный код', type='text')}}
-                {% endcall %}
-            </div>
+<html>
+<head>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+            integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+            crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+            integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+            crossorigin="anonymous"></script>
+    <link rel="stylesheet" href={{ url_for('static', filename="css/bootstrap.min.css")}}>
+    <link rel="stylesheet" href={{ url_for('static', filename="css/styles.css")}}>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons"
+          rel="stylesheet">
+    <script src={{ url_for('static', filename="js/bootstrap.min.js")}}></script>
+</head>
+<body>
+<div class="d-flex" id="wrapper">
+    <!-- sidebar -->
+    <div class="bg-light border-right" id="sidebar-wrapper">
+        <div class="sidebar-heading">Ванек не толстый (c)</div>
+        <div class="list-group list-group-flush">
+            <a href="#" class="list-group-item list-group-item-action bg-light">Dashboard</a>
+            <a href="#" class="list-group-item list-group-item-action bg-light">Shortcuts</a>
+            <a href="#" class="list-group-item list-group-item-action bg-light">Overview</a>
+            <a href="#" class="list-group-item list-group-item-action bg-light">Events</a>
+            <a href="#" class="list-group-item list-group-item-action bg-light">Profile</a>
+            <a href="#" class="list-group-item list-group-item-action bg-light">Status</a>
         </div>
-        <ul class="list-unstyled">
-          <li>Bootstrap 4.2.1</li>
-          <li>jQuery 3.3.1</li>
-        </ul>
     </div>
+    <!-- end sidebar -->
 
-{% endblock content %}
+    <!-- content -->
+
+    <div id="page-content-wrapper">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-6">
+                    <h1 class="mt-4">Создание преподавателя</h1>
+                    <form method="post" id="create_teacher">
+                        <div class="form-group">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <label for="nameInput">Имя *</label>
+                            <input type="text" name="nameInput" class="form-control" placeholder="Имя">
+                        </div>
+                        <div class="form-group">
+                            <label for="surnameInput">Фамилия *</label>
+                            <input type="text" name="surnameInput" class="form-control" placeholder="Фамилия">
+                        </div>
+                        <div class="form-group">
+                            <label for="patronymicInput">Отчество *</label>
+                            <input type="text" name="patronymicInput" class="form-control" placeholder="Отчество">
+                        </div>
+                        <div class="form-group">
+                            <label for="facultyInput">Факультет</label>
+                            <input type="text" name="facultyInput" class="form-control" placeholder="Факультет">
+                            <!--
+                            <select class="custom-select">
+                                <option selected>Факультет</option>
+                                <option value="1">One</option>
+                                <option value="2">Two</option>
+                                <option value="3">Three</option>
+                            </select>
+                            -->
+                        </div>
+                        <div class="form-group">
+                            <label for="departmentInput">Кафедра</label>
+                            <input type="text" name="departmentInput" class="form-control" placeholder="Кафедра">
+                            <!--
+                            <select class="custom-select">
+                                <option selected>Кафедра</option>
+                                <option value="1">One</option>
+                                <option value="2">Two</option>
+                                <option value="3">Three</option>
+                            </select>
+                            -->
+                        </div>
+                        <div class="form-group">
+                            <label for="emailInput">E-mail</label>
+                            <input type="email" name="emailInput" class="form-control" placeholder="E-mail">
+                        </div>
+                        <div class="form-group">
+                            <label for="regcodeInput">Регистрационный код *</label>
+                            <input type="text" name="regcodeInput" class="form-control" placeholder={{ reg_code }}>
+                        </div>
+                        <button type="submit" name="createTeacherForm" class="btn btn-primary">Создать</button>
+                    </form>
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                      <!-- Categories: success (green), info (blue), warning (yellow), danger (red) -->
+                      {% if messages %}
+                        {% for category, message in messages %}
+                          <div class="alert alert-{{ category }} alert-dismissible" role="alert">
+                          <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                          <!-- <strong>Title</strong> --> {{ message }}
+                          </div>
+                        {% endfor %}
+                      {% endif %}
+                    {% endwith %}
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+    <!-- end content -->
+
+    <!-- footer -->
+
+    <!-- end footer -->
+</div>
+</body>
+</html>

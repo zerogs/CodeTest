@@ -69,6 +69,7 @@ class Teacher(User):
     labs = Set(Lab)
     courses = Set('Course')
     faculty = Optional(str)
+    department = Optional(str)
 
 
 class Attempt(db.Entity):
@@ -90,6 +91,7 @@ class PasswordReset(db.Entity):
 
 class Group(db.Entity):
     id = PrimaryKey(int, auto=True)
+    code = Required(str)
     students = Set(Student)
     courses = Set('Course')
     labs = Set(Lab)
@@ -97,6 +99,7 @@ class Group(db.Entity):
 
 class Course(db.Entity):
     id = PrimaryKey(int, auto=True)
+    title = Required(str)
     groups = Set(Group)
     labs = Set(Lab)
     teacher = Required(Teacher)

@@ -8,13 +8,15 @@
             crossorigin="anonymous"></script>
     <link rel="stylesheet" href={{ url_for('static', filename="css/bootstrap.min.css")}}>
     <link rel="stylesheet" href={{ url_for('static', filename="css/styles.css")}}>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons"
+          rel="stylesheet">
     <script src={{ url_for('static', filename="js/bootstrap.min.js")}}></script>
 </head>
 <body>
 <div class="d-flex" id="wrapper">
     <!-- sidebar -->
     <div class="bg-light border-right" id="sidebar-wrapper">
-        <div class="sidebar-heading">Ванек не толстый (c)</div>
+        <div class="sidebar-heading">Code Test</div>
         <div class="list-group list-group-flush">
             <a href="#" class="list-group-item list-group-item-action bg-light">Dashboard</a>
             <a href="#" class="list-group-item list-group-item-action bg-light">Shortcuts</a>
@@ -63,51 +65,44 @@
             <!-- end navigation-top -->
 
             <div class="row">
-                <div class="col-4">
-                    <h1 class="mt-4">Авторизация</h1>
+                <div class="col-6">
+                    <h2  class="mt-4">Список предметов <button type="submit" name="createCourse" href="#" class="btn btn-primary">Создать</button></h2>
 
-                    <form method="post" id="login">
-                        <div class="form-group">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                            <label for="loginInput">Логин</label>
-                            <input type="text" class="form-control" name="inputLogin" placeholder="Логин">
-                            <small id="loginInput" class="form-text text-muted">Ваш логин для входа в систему</small>
-                        </div>
-                        <div class="form-group">
-                            <label for="inputPassword">Пароль</label>
-                            <input type="password" class="form-control" name="inputPassword" placeholder="Пароль">
-                        </div>
-                        <button type="submit" name="authForm" class="btn btn-primary">Войти</button>
-                    </form>
-                </div>
-                <div class="col-1">
-
-                </div>
-                <div class="col-4">
-                    <h1 class="mt-4">Регистрация</h1>
-                    <form method="post" id="reg">
-                        <div class="form-group">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                            <label for="codeInput">Код регистрации</label>
-                            <input type="text" class="form-control" name="inputCode" placeholder="Код">
-                            <small id="codeInput" class="form-text text-muted">Ваш логин для входа в систему</small>
-                        </div>
-                        <button type="submit" name="regForm" class="btn btn-primary">Зарегистрироваться</button>
-                    </form>
+                    <table class="table text-center mt-4">
+                        <thead class="thead-dark">
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Название</th>
+                            <th scope="col">Группы</th>
+                            <th scope="col"></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for course in courses %}
+                        <tr>
+                            <th scope="row">{{ course[0] }}</th>
+                            <td>{{ course[1] }}</td>
+                            <td>{{ course[2] }}</td>
+                            <td>
+                                <a href="#"><i class="material-icons">
+                                    create
+                                </i></a>
+                                <a href="#"><i class="material-icons">
+                                    delete
+                                </i></a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                    <div class="float-right text-right">
+                        <span class="d-block mb-2">Страница 1 из 1</span>
+                        <button type="button" class="btn btn-primary" disabled>Предыдущая</button>
+                        <button type="button" class="btn btn-primary">Следующая</button>
+                    </div>
                 </div>
             </div>
         </div>
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          <!-- Categories: success (green), info (blue), warning (yellow), danger (red) -->
-          {% if messages %}
-            {% for category, message in messages %}
-              <div class="alert alert-{{ category }} alert-dismissible" role="alert">
-              <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-              <!-- <strong>Title</strong> --> {{ message }}
-              </div>
-            {% endfor %}
-          {% endif %}
-        {% endwith %}
     </div>
 
     <!-- end content -->

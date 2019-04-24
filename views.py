@@ -1,53 +1,91 @@
-from app import app
-from flask import render_template, request, redirect, url_for
+from app import app, group_lists, programs
+from flask import render_template, request, redirect, url_for, flash
 from flask_login import current_user, login_user, logout_user
-from models import db, User, Teacher, Student
+from models import db, User, Teacher, Student, Group,  generate_password_hash
 from datetime import datetime
-from pony.orm import db_session
-from forms import LoginForm, CreateTeacherForm, RegCodeForm
 from secrets import token_hex
-
+from csvhandler import csv_reader
 
 
 def authorized():
     if not current_user:
         return False
-
     try:
         return current_user.is_authenticated()
     except:
         return current_user.is_authenticated
 
 
-@app.route('/')
+@app.route('/update_profile/<id>', methods=['GET', 'POST'])
+def update_teacher_profile(id):
+    if not authorized():
+        return redirect(url_for('login'))
+    teacher = User.get(id=id)
+    if teacher.id != current_user.id:
+        return redirect(url_for('login'))
+    form = request.form
+    if request.method == 'POST' and 'updateForm' in request.form:
+        if form.get('inputPassword') != form.get('inputRepassword'):
+            flash("Введённые пароли не совпадают!", "warning")
+            return render_template('teacher/registration-teacher.html', teacher=teacher)
+        else:
+            teacher.login = form.get("loginInput")
+            teacher.email = form.get("emailInput")
+            teacher.password = generate_password_hash(form.get("inputPassword"))
+            teacher.activated = True
+            flash("Данные обновлены успешно!", "success")
+    return render_template('teacher/registration-teacher.html', teacher=teacher)
+
+
+@app.route('/', methods=['GET', 'POST'])
 @app.route('/index', methods=['GET', 'POST'])
 def login():
+    '''
     if authorized():
-        if current_user.is_admin:
-            return redirect(url_for('admin'))
         if Teacher.get(id=current_user.id):
-            return redirect(url_for('teacher'))
+            return redirect(url_for('courses', id=current_user.id))
         if Student.get(id=current_user.id):
             return redirect(url_for('student'))
+        if current_user.is_admin:
+            return redirect(url_for('admin'))
+    '''
+    form = request.form
+    if request.method == 'POST' and 'authForm' in request.form:
+        login = form.get("inputLogin")
+        password = form.get("inputPassword")
 
-
-    form = LoginForm(request.form)
-    if request.method == 'POST' and form.validate_on_submit():
-        login = form.username.data
-        password = form.password.data
         user = User.get(login=login)
-        correct = user.check_password(password)
-        if correct:
-            login_user(user, remember=True, force=True)
-            user.last_login = datetime.now()
-            if current_user.is_admin:
-                return redirect(url_for('admin'))
-            if Teacher.get(id=current_user.id):
-                return redirect(url_for('teacher'))
-            if Student.get(id=current_user.id):
-                return redirect(url_for('student'))
+        if user:
+            correct = user.check_password(password)
+            if correct:
+                login_user(user, remember=True, force=True)
+                user.last_login = datetime.now()
+                if Teacher.get(id=current_user.id):
+                    return redirect(url_for('courses',id=current_user.id))
+                if Student.get(id=current_user.id):
+                    return redirect(url_for('student'))
+                if current_user.is_admin:
+                    return redirect(url_for('admin'))
+            else:
+                flash("Некорректный логин или пароль", "danger")
+        else:
+            flash("Некорректный логин или пароль", "danger")
 
-    return render_template('login.html', form=form, title="Авторизация")
+    if request.method == 'POST' and 'regForm' in request.form:
+        code = form.get("inputCode")
+        if code == "":
+            flash("Некорректный регистрационный код", "warning")
+            return render_template('login.html')
+        user = User.get(reg_code=code)
+        if user:
+            if isinstance(user, Teacher):
+                login_user(user, remember=True, force=True)
+                user.last_login = datetime.now()
+                return redirect(url_for('update_teacher_profile', id=user.id))
+        else:
+            flash("Некорректный регистрационный код")
+
+    return render_template('login.html')
 
 
 @app.route('/logout')
@@ -68,55 +106,99 @@ def create_teacher():
     if not authorized() and not current_user.is_admin:
         return redirect(url_for('login'))
 
-    form = CreateTeacherForm(request.form)
+    form = request.form
     reg_code = token_hex(7)
-    form.reg_code.data = reg_code
-    if request.method == 'POST' and form.validate_on_submit():
+    if request.method == 'POST' and 'createTeacherForm' in request.form:
+        name = form.get('nameInput')
+        surname = form.get('surnameInput')
+        patronymic = form.get('patronymicInput')
+        faculty = form.get('facultyInput')
+        department = form.get('departmentInput')
+        email = form.get('emailInput')
+        reg_code_final = form.get('regcodeInput')
+        if reg_code_final == '':
+            reg_code_final = reg_code
+        if name == '' or surname == '' or patronymic == '':
+            flash("Обязательно поле не заполнено!", "warning")
+            return render_template('admin/create_teacher.html',reg_code=reg_code)
 
-        surname = form.surname.data
-        name = form.name.data
-        patronymic = form.patronymic.data
-        faculty = form.faculty.data
-        form_reg_code = form.reg_code.data
         t = Teacher(
             surname=surname,
             name=name,
             patronymic=patronymic,
             faculty=faculty,
-            reg_code=form_reg_code,
+            department=department,
+            email=email,
+            reg_code=reg_code_final,
             activated=False
         )
-        return redirect(url_for('show_code', reg_code=reg_code))
+        reg_code = token_hex(7)
+        flash("Учётная запись преподавателя успешно создана! Регистрационный код: " + reg_code_final, "success")
 
-    return render_template('admin/create_teacher.html', form=form, reg_code=reg_code)
-
-
-@app.route('/enter', methods=['GET', 'POST'])
-def enter_code():
-    form = RegCodeForm(request.form)
-
-    if request.method == 'POST' and form.validate_on_submit():
-        print('eee')
-        code = form.reg_code.data
-        return redirect(url_for('update_profile'))
-
-    return render_template('user/enter_code.html', form=form)
+    return render_template('admin/create_teacher.html',reg_code=reg_code)
 
 
-@app.route('/code', methods=['GET', 'POST'])
-def show_code():
-    reg_code = request.args.get('reg_code', None)
-    return render_template('user/show_code.html', reg_code=reg_code)
+@app.route('/courses/<id>')
+def courses(id):
+    if current_user.id != int(id):
+        return redirect(url_for("login"))
+
+    teacher = Teacher.get(id=id)
+    courses = teacher.courses
+    out = []
+    s = ''
+    i = 0
+    for course in courses:
+        i += 1
+        for group in courses.groups:
+            s += group.code + " "
+        out.append((i, course.title, s))
+
+    return render_template('teacher/courses.html', courses=out)
 
 
-@app.route('/update_profile', methods=['GET', 'POST'])
-def update_profile():
-    return render_template('user/update_profile.html')
+@app.route('/group_create/', methods=['GET', 'POST'])
+def group_create():
+    user = User.get(id=current_user.id)
+    if not isinstance(user, Teacher):
+        return redirect(url_for('login'))
 
+    form = request.form
+    if request.method == 'POST' and 'groupList' in request.files:
+        filename = group_lists.save(request.files['groupList'])
+        group_name = form.get("groupCodeInput")
 
-@app.route('/teacher')
-def teacher():
-    return render_template('teacher/index.html')
+        if group_name == '':
+            flash("Укажите название группы!", "warning")
+            return render_template("teacher/group-create.html")
+
+        g = Group(
+            code=group_name
+        )
+        try:
+            with open(filename) as obj:
+                lst = csv_reader(obj)
+        except IOError:
+            flash("Ошибка чтения файла!", "danger")
+            return render_template("teacher/group-create.html")
+        except KeyError:
+            flash("Неверная структура файла!", "danger")
+            return render_template("teacher/group-create.html")
+
+        for i in lst:
+            reg_code = token_hex(7)
+            Student(
+                surname=i[0],
+                name=i[1],
+                patronymic=i[2],
+                reg_code=reg_code,
+                group=g,
+                activated=False
+            )
+        flash("Группа " + group_name + " успешно создана!", "success")
+
+    return render_template("teacher/group-create.html")
+
 
 @app.route('/student')
 def student():

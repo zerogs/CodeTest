@@ -6,15 +6,15 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
             integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
             crossorigin="anonymous"></script>
-    <link rel="stylesheet" href="css/bootstrap.min.css">
-    <link rel="stylesheet" href="css/styles.css">
-    <script src="js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href={{ url_for('static', filename="css/bootstrap.min.css")}}>
+    <link rel="stylesheet" href={{ url_for('static', filename="css/styles.css")}}>
+    <script src={{ url_for('static', filename="js/bootstrap.min.js")}}></script>
 </head>
 <body>
 <div class="d-flex" id="wrapper">
     <!-- sidebar -->
     <div class="bg-light border-right" id="sidebar-wrapper">
-        <div class="sidebar-heading">Ванек не толстый (c)</div>
+        <div class="sidebar-heading">Code Test</div>
         <div class="list-group list-group-flush">
             <a href="#" class="list-group-item list-group-item-action bg-light">Dashboard</a>
             <a href="#" class="list-group-item list-group-item-action bg-light">Shortcuts</a>
@@ -64,42 +64,54 @@
 
             <div class="row">
                 <div class="col-6">
-                    <h1 class="mt-4">Регистрация студента</h1>
-                    <form>
+                    <h1 class="mt-4">Обновление данных студента</h1>
+                    <form method="post" id="update">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <div class="form-group">
                             <label for="nameInput">Имя</label>
-                            <input type="text" disabled id="nameInput" class="form-control" placeholder="Имя">
+                            <input type="text" disabled id="nameInput" class="form-control" placeholder={{ student.name }}>
                         </div>
                         <div class="form-group">
                             <label for="surnameInput">Фамилия</label>
-                            <input type="text" disabled id="surnameInput" class="form-control" placeholder="Фамилия">
+                            <input type="text" disabled id="surnameInput" class="form-control" placeholder={{ student.surname }}>
                         </div>
                         <div class="form-group">
                             <label for="patronymicInput">Отчество</label>
-                            <input type="text" disabled id="patronymicInput" class="form-control" placeholder="Отчество">
-                        </div>
-                        <div class="form-group">
-                            <label for="loginInput">Логин</label>
-                            <input type="text" disabled id="loginInput" class="form-control" placeholder="Логин">
+                            <input type="text" disabled id="patronymicInput" class="form-control" placeholder={{ student.patronymic }}>
                         </div>
                         <div class="form-group">
                             <label for="groupInput">Группа</label>
-                            <input type="text" disabled id="groupInput" class="form-control" placeholder="Группа">
+                            <input type="text" disabled id="groupInput" class="form-control" placeholder={{ student.group.code }}>
+                        </div>
+                        <div class="form-group">
+                            <label for="loginInput">Логин</label>
+                            <input type="text" name="loginInput" id="loginInput" class="form-control" placeholder={{ student.login }}>
                         </div>
                         <div class="form-group">
                             <label for="emailInput">E-mail</label>
-                            <input type="email" id="emailInput" class="form-control" placeholder="E-mail">
+                            <input type="email" name="emailInput" id="emailInput" class="form-control" placeholder={{ student.email }}>
                         </div>
                         <div class="form-group">
                             <label for="inputPassword">Пароль</label>
-                            <input type="password" class="form-control" id="inputPassword" placeholder="Пароль">
+                            <input type="password" name="inputPassword" class="form-control" id="inputPassword" placeholder="Пароль">
                         </div>
                         <div class="form-group">
                             <label for="inputRepassword">Повтор пароля</label>
-                            <input type="repassword" class="form-control" id="inputRepassword" placeholder="Повтор пароля">
+                            <input type="password" name="inputRepassword" class="form-control" id="inputRepassword" placeholder="Повтор пароля">
                         </div>
-                        <button type="submit" class="btn btn-primary">Зарегистрироваться</button>
+                        <button type="submit" name="updateForm" class="btn btn-primary">Зарегистрироваться</button>
                     </form>
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                      <!-- Categories: success (green), info (blue), warning (yellow), danger (red) -->
+                      {% if messages %}
+                        {% for category, message in messages %}
+                          <div class="alert alert-{{ category }} alert-dismissible" role="alert">
+                          <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                          <!-- <strong>Title</strong> --> {{ message }}
+                          </div>
+                        {% endfor %}
+                      {% endif %}
+                    {% endwith %}
                 </div>
             </div>
         </div>

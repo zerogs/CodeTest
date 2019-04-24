@@ -37,6 +37,28 @@ def update_teacher_profile(id):
     return render_template('teacher/registration-teacher.html', teacher=teacher)
 
 
+@app.route('/update_student/<id>', methods=['GET', 'POST'])
+def update_student_profile(id):
+    if not authorized():
+        return redirect(url_for('login'))
+    student = User.get(id=id)
+    if student.id != current_user.id:
+        return redirect(url_for('login'))
+    form = request.form
+
+    if request.method == 'POST' and 'updateForm' in request.form:
+        if form.get('inputPassword') != form.get('inputRepassword'):
+            flash("Введённые пароли не совпадают!", "warning")
+            return render_template('student/registration-student.html', student=student)
+        else:
+            student.login = form.get("loginInput")
+            student.email = form.get("emailInput")
+            student.password = generate_password_hash(form.get("inputPassword"))
+            student.activated = True
+            flash("Данные обновлены успешно!", "success")
+    return render_template('student/registration-student.html', student=student)
+
+
 @app.route('/', methods=['GET', 'POST'])
 @app.route('/index', methods=['GET', 'POST'])
 def login():
@@ -82,6 +104,10 @@ def login():
                 login_user(user, remember=True, force=True)
                 user.last_login = datetime.now()
                 return redirect(url_for('update_teacher_profile', id=user.id))
+            if isinstance(user, Student):
+                login_user(user, remember=True, force=True)
+                user.last_login = datetime.now()
+                return redirect(url_for('update_student_profile', id=user.id))
         else:
             flash("Некорректный регистрационный код")
 

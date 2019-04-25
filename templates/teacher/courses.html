@@ -18,7 +18,7 @@
     <div class="bg-light border-right" id="sidebar-wrapper">
         <div class="sidebar-heading">Code Test</div>
         <div class="list-group list-group-flush">
-            <a href="#" class="list-group-item list-group-item-action bg-light">Dashboard</a>
+            <a href={{ url_for("courses", id=teacher.id) }} class="list-group-item list-group-item-action bg-light">Предметы</a>
             <a href="#" class="list-group-item list-group-item-action bg-light">Shortcuts</a>
             <a href="#" class="list-group-item list-group-item-action bg-light">Overview</a>
             <a href="#" class="list-group-item list-group-item-action bg-light">Events</a>
@@ -66,7 +66,7 @@
 
             <div class="row">
                 <div class="col-6">
-                    <h2  class="mt-4">Список предметов <button type="submit" name="createCourse" href="#" class="btn btn-primary">Создать</button></h2>
+                    <h2  class="mt-4">Список предметов <form action={{ url_for("create_course", tid=teacher.id) }}> <button type="submit" class="btn btn-primary">Создать</button></form></h2>
 
                     <table class="table text-center mt-4">
                         <thead class="thead-dark">

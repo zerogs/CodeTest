@@ -60,7 +60,7 @@ def update_student_profile(id):
     return render_template('student/registration-student.html', student=student)
 
 
-@app.route('/create_course/<teacherid>/', methods=['GET', 'POST'])
+@app.route('/create_course/<tid>/', methods=['GET', 'POST'])
 def create_course(tid):
     if not authorized():
         return redirect(url_for('login'))
@@ -68,7 +68,39 @@ def create_course(tid):
     if teacher.id != current_user.id:
         return redirect(url_for('login'))
 
+    show = isinstance(current_user, Admin)
 
+    groups = []
+    query = select(group.code for group in Group)[:]
+    for group in query:
+        groups.append(group)
+
+    form = request.form
+    if request.method == 'POST' and 'create' in request.form:
+        title = form.get('nameInput')
+
+        if title == '':
+            flash("Не указано название предмета!", "warning")
+            return render_template('teacher/course-creation.html', show=show, groups=groups)
+
+        group_codes = request.form.getlist('group[]')
+        try:
+            group_codes.remove('Группа')
+        except ValueError:
+            pass
+
+        c = Course(
+            title=title,
+            teacher=teacher
+        )
+
+        for code in group_codes:
+            g = Group.get(code=code)
+            c.groups.add(g)
+
+        flash("Предмет создан!", "success")
+
+    return render_template('teacher/course-creation.html', show=show, groups=groups, teacher=teacher)
 
 @app.route('/course_edit/<teacherid>/<courseid>', methods=['GET', 'POST'])
 def course_edit(courseid, teacherid):
@@ -230,14 +262,20 @@ def courses(id):
     courses = teacher.courses
     out = []
     s = ''
-    i = 0
     for course in courses:
-        i += 1
-        for group in courses.groups:
+        for group in course.groups:
             s += group.code + " "
+        s = sorted(s.split(' '))
+        for i in s:
+            if i == ' ':
+                s.remove(i)
+        s = ' '.join(s)
         out.append((course.id, course.title, s))
+        s = ''
 
-    return render_template('teacher/courses.html', courses=out, teacher=teacher )
+    out = sorted(out)
+
+    return render_template('teacher/courses.html', courses=out, teacher=teacher)
 
 
 @app.route('/group_create/', methods=['GET', 'POST'])

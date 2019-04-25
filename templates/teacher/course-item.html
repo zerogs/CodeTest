@@ -1,0 +1,114 @@
+<html>
+<head>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+            integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+            crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+            integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+            crossorigin="anonymous"></script>
+    <link rel="stylesheet" href={{ url_for('static', filename="css/bootstrap.min.css")}}>
+    <link rel="stylesheet" href={{ url_for('static', filename="css/styles.css")}}>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons"
+          rel="stylesheet">
+    <script src={{ url_for('static', filename="js/bootstrap.min.js")}}></script>
+</head>
+<body>
+<div class="d-flex" id="wrapper">
+    <!-- sidebar -->
+    <div class="bg-light border-right" id="sidebar-wrapper">
+        <div class="sidebar-heading">Ванек не толстый (c)</div>
+        <div class="list-group list-group-flush">
+            <a href="#" class="list-group-item list-group-item-action bg-light">Dashboard</a>
+            <a href="#" class="list-group-item list-group-item-action bg-light">Shortcuts</a>
+            <a href="#" class="list-group-item list-group-item-action bg-light">Overview</a>
+            <a href="#" class="list-group-item list-group-item-action bg-light">Events</a>
+            <a href="#" class="list-group-item list-group-item-action bg-light">Profile</a>
+            <a href="#" class="list-group-item list-group-item-action bg-light">Status</a>
+        </div>
+    </div>
+    <!-- end sidebar -->
+
+    <!-- content -->
+
+    <div id="page-content-wrapper">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-6">
+                    <h1 class="mt-4">Редактирование предмета</h1>
+                    <form method="post", id="updateCourse">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <div class="form-group">
+                            <label for="nameInput">Название</label>
+                            <input type="text" name="nameInput" id="nameInput" class="form-control" placeholder="{{ course.title }}">
+                        </div>
+                        {% if show %}
+                        <div class="form-group">
+                            <label>Преподаватель</label>
+                            <select class="custom-select">
+                                <option selected>Преподаватель</option>
+                                <option value="1">One</option>
+                                <option value="2">Two</option>
+                                <option value="3">Three</option>
+                            </select>
+                        </div>
+                        {% endif %}
+
+                        <div id="group_selectors" class="form-group">
+                            <label>Группы</label>
+                            {% for g in cg %}
+                            <div class="group-selector d-flex">
+                                <select class="select-group custom-select mb-2" data-index="0" name="group[]">
+                                    <option selected>{{ g.code }}</option>
+                                    {% for group in groups %}
+                                    <option value={{ group }}> {{ group }}</option>
+                                    {% endfor %}
+                                </select>
+                                <i class="material-icons mt-2 ml-2 delete-course" style="color: red; cursor: pointer;">
+                                    clear
+                                </i>
+                            </div>
+                            {% endfor %}
+                            <div class="group-selector d-flex">
+                                <select class="select-group custom-select mb-2" data-index="0" name="group[]">
+                                    <option selected>Группа</option>
+                                    {% for group in groups %}
+                                    <option value={{ group }}> {{ group }}</option>
+                                    {% endfor %}
+                                </select>
+                                <i class="material-icons mt-2 ml-2 delete-course" style="color: red; cursor: pointer;">
+                                    clear
+                                </i>
+                            </div>
+                        </div>
+                        <button type="submit" name="update" class="btn btn-primary">Обновить</button>
+                        <button type="submit" name="delete" class="btn btn-danger">Удалить</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- end content -->
+
+    <!-- footer -->
+
+    <!-- end footer -->
+</div>
+<script type="application/javascript">
+    $("body").on("change", "select.select-group", (el) => {
+        let element = $(el.target);
+        let index = parseInt(element.attr("data-index")) + 1;
+        if ($("select.group-selector[data-index=" + index + "]").length === 0) {
+            let new_el = element.parent().clone();
+            new_el.find("select").attr("data-index", index);
+            $("#group_selectors").append(new_el);
+        }
+    });
+
+    $("body").on("click", "i.delete-course", (el) => {
+        let element = $(el.target);
+        element.parent("div.group-selector")[0].remove();
+    });
+</script>
+</body>
+</html>

@@ -71,7 +71,7 @@
                     <table class="table text-center mt-4">
                         <thead class="thead-dark">
                         <tr>
-                            <th scope="col">#</th>
+                            <th scope="col">ID</th>
                             <th scope="col">Название</th>
                             <th scope="col">Группы</th>
                             <th scope="col"></th>
@@ -84,7 +84,7 @@
                             <td>{{ course[1] }}</td>
                             <td>{{ course[2] }}</td>
                             <td>
-                                <a href="#"><i class="material-icons">
+                                <a href={{ url_for('course_edit', courseid=course[0], teacherid=teacher.id ) }}><i class="material-icons">
                                     create
                                 </i></a>
                                 <a href="#"><i class="material-icons">

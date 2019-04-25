@@ -1,7 +1,8 @@
 from app import app, group_lists, programs
 from flask import render_template, request, redirect, url_for, flash
 from flask_login import current_user, login_user, logout_user
-from models import db, User, Teacher, Student, Group,  generate_password_hash
+from models import db, Admin,User, Teacher, Student, Group, Course,  generate_password_hash
+from pony.orm import select
 from datetime import datetime
 from secrets import token_hex
 from csvhandler import csv_reader
@@ -58,6 +59,62 @@ def update_student_profile(id):
             flash("Данные обновлены успешно!", "success")
     return render_template('student/registration-student.html', student=student)
 
+
+@app.route('/create_course/<teacherid>/', methods=['GET', 'POST'])
+def create_course(tid):
+    if not authorized():
+        return redirect(url_for('login'))
+    teacher = User.get(id=tid)
+    if teacher.id != current_user.id:
+        return redirect(url_for('login'))
+
+
+
+@app.route('/course_edit/<teacherid>/<courseid>', methods=['GET', 'POST'])
+def course_edit(courseid, teacherid):
+    if not authorized():
+        return redirect(url_for('login'))
+    teacher = User.get(id=teacherid)
+    if teacher.id != current_user.id:
+        return redirect(url_for('login'))
+    show = isinstance(current_user, Admin)
+    course = Course.get(id=courseid, teacher=Teacher.get(id=teacherid))
+    cg = course.groups
+    groups = []
+    query = select(group.code for group in Group)[:]
+    for group in query:
+        groups.append(group)
+
+    form = request.form
+    if request.method == 'POST' and 'update' in request.form:
+        title = form.get('nameInput')
+
+        if title == '':
+            title = course.title
+
+        group_codes = request.form.getlist('group[]')
+        try:
+            group_codes.remove('Группа')
+        except ValueError:
+            pass
+
+        course.title = title
+        cglst = []
+        for g in cg:
+            cglst.append(g.code)
+
+        for code in group_codes:
+            if code not in cglst:
+                g = Group.get(code=code)
+                course.groups.add(g)
+        for g in cglst:
+            if g not in group_codes:
+                grp = Group.get(code=g)
+                course.groups.remove(grp)
+
+        return redirect(url_for('courses',id=teacherid))
+
+    return render_template('teacher/course-item.html', show=show, course=course, groups=groups, cg=cg)
 
 @app.route('/', methods=['GET', 'POST'])
 @app.route('/index', methods=['GET', 'POST'])
@@ -178,9 +235,9 @@ def courses(id):
         i += 1
         for group in courses.groups:
             s += group.code + " "
-        out.append((i, course.title, s))
+        out.append((course.id, course.title, s))
 
-    return render_template('teacher/courses.html', courses=out)
+    return render_template('teacher/courses.html', courses=out, teacher=teacher )
 
 
 @app.route('/group_create/', methods=['GET', 'POST'])
@@ -198,9 +255,6 @@ def group_create():
             flash("Укажите название группы!", "warning")
             return render_template("teacher/group-create.html")
 
-        g = Group(
-            code=group_name
-        )
         try:
             with open(filename) as obj:
                 lst = csv_reader(obj)
@@ -210,6 +264,10 @@ def group_create():
         except KeyError:
             flash("Неверная структура файла!", "danger")
             return render_template("teacher/group-create.html")
+
+        g = Group(
+            code=group_name
+        )
 
         for i in lst:
             reg_code = token_hex(7)

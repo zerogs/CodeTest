@@ -10,7 +10,7 @@ class Lab(db.Entity):
     title = Required(str)
     groups = Set('Group')
     teacher = Required('Teacher')
-    course = Required('Course')
+    courses = Set('Course')
     variants = Set('Variant')
 
 

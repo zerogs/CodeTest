@@ -19,7 +19,7 @@
         <div class="sidebar-heading">Code Test</div>
         <div class="list-group list-group-flush">
             <a href={{ url_for("courses", id=teacher.id) }} class="list-group-item list-group-item-action bg-light">Предметы</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Shortcuts</a>
+            <a href={{ url_for("group_create")}} class="list-group-item list-group-item-action bg-light">Создать группу</a>
             <a href="#" class="list-group-item list-group-item-action bg-light">Overview</a>
             <a href="#" class="list-group-item list-group-item-action bg-light">Events</a>
             <a href="#" class="list-group-item list-group-item-action bg-light">Profile</a>
@@ -66,7 +66,7 @@
 
             <div class="row">
                 <div class="col-6">
-                    <h2  class="mt-4">Список предметов <form action={{ url_for("create_course", tid=teacher.id) }}> <button type="submit" class="btn btn-primary">Создать</button></form></h2>
+                    <h2  class="mt-4">Список предметов <button type="submit" onClick="window.location.replace('{{ url_for("create_course", tid=teacher.id) }}')" class="btn btn-primary">Создать</button></h2>
 
                     <table class="table text-center mt-4">
                         <thead class="thead-dark">
@@ -74,6 +74,7 @@
                             <th scope="col">ID</th>
                             <th scope="col">Название</th>
                             <th scope="col">Группы</th>
+                            <th scope="col"></th>
                             <th scope="col"></th>
                         </tr>
                         </thead>
@@ -83,6 +84,7 @@
                             <th scope="row">{{ course[0] }}</th>
                             <td>{{ course[1] }}</td>
                             <td>{{ course[2] }}</td>
+                            <td><a href={{ url_for("labs_list", id=teacher.id, cid=course[0]) }}>Лаб. работы</a></td>
                             <td>
                                 <a href={{ url_for('course_edit', courseid=course[0], teacherid=teacher.id ) }}><i class="material-icons">
                                     create

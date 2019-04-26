@@ -10,6 +10,8 @@ def csv_reader(file_obj):
     for line in reader:
         lst.append((line['last_name'], line['first_name'], line['patronymic']))
 
+    return lst
+
 if __name__ == "__main__":
     with open("test.csv") as f_obj:
         csv_reader(f_obj)

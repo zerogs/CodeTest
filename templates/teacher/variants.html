@@ -18,8 +18,8 @@
     <div class="bg-light border-right" id="sidebar-wrapper">
         <div class="sidebar-heading">Code Test</div>
         <div class="list-group list-group-flush">
-            <a href={{ url_for("courses", id=teacher.id) }} class="list-group-item list-group-item-action bg-light">Предметы</a>
-            <a href={{ url_for("group_create")}} class="list-group-item list-group-item-action bg-light">Создать группу</a>
+            <a href="#" class="list-group-item list-group-item-action bg-light">Dashboard</a>
+            <a href="#" class="list-group-item list-group-item-action bg-light">Shortcuts</a>
             <a href="#" class="list-group-item list-group-item-action bg-light">Overview</a>
             <a href="#" class="list-group-item list-group-item-action bg-light">Events</a>
             <a href="#" class="list-group-item list-group-item-action bg-light">Profile</a>
@@ -34,27 +34,25 @@
         <div class="container-fluid">
             <div class="row">
                 <div class="col-6">
-                    <h2 class="mt-4">Лабораторные работы по предмету {{ course.title }}  <button type="submit" onClick="window.location.replace('{{ url_for("create_lab", id=teacher.id) }}')" class="btn btn-primary">Создать</button></h2>
+                    <h2  class="mt-4">Варианты для лабораторной работы {{ lab.title }} <button type="submit" onClick="window.location.replace('{{ url_for("create_variant", tid=teacher.id, cid=course.id, lid=lab.id) }}')" class="btn btn-primary">Создать</button></h2>
 
                     <table class="table text-center mt-4">
                         <thead class="thead-dark">
                         <tr>
                             <th scope="col">ID</th>
+                            <th scope="col">Номер</th>
                             <th scope="col">Название</th>
-                            <th scope="col">Предметы</th>
-                            <th scope="col">Группы</th>
                             <th scope="col"></th>
                             <th scope="col"></th>
                         </tr>
                         </thead>
                         <tbody>
                         <tr>
-                            {% for lab in labs %}
-                            <th scope="row">{{ lab[0] }}</th>
-                            <td>{{ lab[1] }}</td>
-                            <td>{{ lab[2] }}</td>
-                            <td>{{ lab[3] }}</td>
-                            <td><a href={{ url_for('variant_list', tid=teacher.id, cid=course.id, lid=lab[0]) }}>Варианты</a></td>
+                            {% for var in variants %}
+                            <th scope="row">{{ var.id }}</th>
+                            <td>{{ var.number}}</td>
+                            <td>{{ var.title }}</td>
+                            <td><a href="#">Тесты</a></td>
                             <td>
                                 <a href="#"><i class="material-icons">
                                     create

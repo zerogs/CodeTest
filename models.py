@@ -15,17 +15,18 @@ class Lab(db.Entity):
 
 
 class Variant(db.Entity):
-    id = PrimaryKey(int)
+    id = PrimaryKey(int, auto=True)
     number = Required(int)
+    title = Required(str)
     description = Required(LongStr)
     lab = Required(Lab)
-    student = Required('Student')
+    student = Optional('Student')
     tests = Set('Test')
     attempts = Set('Attempt')
 
 
 class Test(db.Entity):
-    id = PrimaryKey(int)
+    id = PrimaryKey(int, auto=True)
     input = Required(str)
     output = Required(str)
     variant = Required(Variant)

@@ -19,7 +19,7 @@
         <div class="sidebar-heading">Code Test</div>
         <div class="list-group list-group-flush">
             <a href={{ url_for("courses", id=teacher.id) }} class="list-group-item list-group-item-action bg-light">Предметы</a>
-            <a href={{ url_for("group_create")}} class="list-group-item list-group-item-action bg-light">Создать группу</a>
+            <a href="#" class="list-group-item list-group-item-action bg-light">Shortcuts</a>
             <a href="#" class="list-group-item list-group-item-action bg-light">Overview</a>
             <a href="#" class="list-group-item list-group-item-action bg-light">Events</a>
             <a href="#" class="list-group-item list-group-item-action bg-light">Profile</a>
@@ -34,12 +34,12 @@
         <div class="container-fluid">
             <div class="row">
                 <div class="col-6">
-                    <h1 class="mt-4">Создание лабораторной работы</h1>
-                    <form method="post" id="labCreation">
+                    <h1 class="mt-4">Редактирование лабораторной работы</h1>
+                    <form method="post" id="labEdit">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <div class="form-group">
                             <label for="titleInput">Название</label>
-                            <input type="text" name="titleInput" id="titleInput" class="form-control" placeholder="Название">
+                            <input type="text" name="titleInput" id="titleInput" class="form-control" placeholder="{{ lab.title }}">
                         </div>
                         {% if show %}
                         <div class="form-group">
@@ -53,12 +53,25 @@
                         </div>
                         {% endif %}
                         <div id="course_selectors" class="form-group">
-                            <label for="courseInput">Предмет</label>
+                            <label for="courseInput">Предметы</label>
+                            {% for c in lc %}
+                            <div class="course-selector d-flex">
+                                <select id="courseInput" class="select-course custom-select mb-2" data-index="0" name="course[]">
+                                    <option selected>{{ c.title }}</option>
+                                    {% for c in courses %}
+                                    <option value="{{ c.title }}"> {{ c.title }}</option>
+                                    {% endfor %}
+                                </select>
+                                <i class="material-icons mt-2 ml-2 delete-course" style="color: red; cursor: pointer;">
+                                    clear
+                                </i>
+                            </div>
+                            {% endfor %}
                             <div class="course-selector d-flex">
                                 <select id="courseInput" class="select-course custom-select mb-2" data-index="0" name="course[]">
                                     <option selected>Предмет</option>
                                     {% for c in courses %}
-                                    <option value="{{ c }}"> {{ c }}</option>
+                                    <option value="{{ c.title }}"> {{ c.title }}</option>
                                     {% endfor %}
                                 </select>
                                 <i class="material-icons mt-2 ml-2 delete-course" style="color: red; cursor: pointer;">
@@ -68,6 +81,19 @@
                         </div>
                         <div id="group_selectors" class="form-group">
                             <label>Группы</label>
+                            {% for g in lg %}
+                            <div class="group-selector d-flex">
+                                <select class="select-group custom-select mb-2" data-index="0" name="group[]">
+                                    <option selected>{{ g.code }}</option>
+                                    {% for group in groups %}
+                                    <option value={{ group.code }}> {{ group.code }}</option>
+                                    {% endfor %}
+                                </select>
+                                <i class="material-icons mt-2 ml-2 delete-group" style="color: red; cursor: pointer;">
+                                    clear
+                                </i>
+                            </div>
+                            {% endfor %}
                             <div class="group-selector d-flex">
                                 <select class="select-group custom-select mb-2" data-index="0" name="group[]">
                                     <option selected>Группа</option>
@@ -80,7 +106,8 @@
                                 </i>
                             </div>
                         </div>
-                        <button type="submit" name="create" class="btn btn-primary">Создать</button>
+                        <button type="submit" name="update" class="btn btn-primary">Обновить</button>
+                        <!-- <button type="submit" class="btn btn-danger">Удалить</button> -->
                     </form>
                     {% with messages = get_flashed_messages(with_categories=true) %}
                       <!-- Categories: success (green), info (blue), warning (yellow), danger (red) -->

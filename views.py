@@ -1,7 +1,7 @@
 from app import app, group_lists, programs
 from flask import render_template, request, redirect, url_for, flash
 from flask_login import current_user, login_user, logout_user
-from models import db, Admin,User, Teacher, Student, Group, Course, Lab,  generate_password_hash
+from models import db, Admin,User, Teacher, Student, Variant, Group, Course, Lab,  generate_password_hash
 from pony.orm import select
 from datetime import datetime
 from secrets import token_hex
@@ -60,7 +60,7 @@ def update_student_profile(id):
     return render_template('student/registration-student.html', student=student)
 
 
-@app.route('/<tid>/create_course/', methods=['GET', 'POST'])
+@app.route('/teacher-<tid>/create_course/', methods=['GET', 'POST'])
 def create_course(tid):
     if not authorized():
         return redirect(url_for('login'))
@@ -103,7 +103,7 @@ def create_course(tid):
     return render_template('teacher/course-creation.html', show=show, groups=groups, teacher=teacher)
 
 
-@app.route('/<teacherid>/course_edit/<courseid>', methods=['GET', 'POST'])
+@app.route('/teacher-<teacherid>/course_edit/<courseid>', methods=['GET', 'POST'])
 def course_edit(courseid, teacherid):
     if not authorized():
         return redirect(url_for('login'))
@@ -132,18 +132,17 @@ def course_edit(courseid, teacherid):
             pass
 
         course.title = title
-        cglst = []
+
         for g in cg:
-            cglst.append(g.code)
+            if g.code not in group_codes:
+                for lab in course.labs:
+                    lab.groups.remove(g)
+                course.groups.remove(g)
 
         for code in group_codes:
-            if code not in cglst:
-                g = Group.get(code=code)
+            g = Group.get(code=code)
+            if g not in cg:
                 course.groups.add(g)
-        for g in cglst:
-            if g not in group_codes:
-                grp = Group.get(code=g)
-                course.groups.remove(grp)
 
         return redirect(url_for('courses',id=teacherid))
 
@@ -231,14 +230,169 @@ def labs_list(id, cid):
         out.append((lab.id, lab.title, sc, s))
         s = ''
 
+    return render_template('teacher/labs.html', labs=out, teacher=teacher, course=course)
 
-    return render_template('teacher/labs.html', labs=out, teacher=teacher, title=course.title)
+@app.route('/teacher-<tid>/lab-<lid>/edit', methods=['GET', 'POST'])
+def lab_edit(tid, lid):
+    if not authorized():
+        return redirect(url_for('login'))
+    teacher = User.get(id=tid)
+    if teacher.id != current_user.id:
+        return redirect(url_for('login'))
+    show = isinstance(current_user, Admin)
 
+    lab = Lab.get(id=lid)
+
+    lg = lab.groups
+    groups = []
+    gquery = select(group.code for group in Group)[:]
+    for group in gquery:
+        groups.append(group)
+
+    lc = lab.courses
+    courses = []
+
+    cquery = select(course.title for course in Course)[:]
+    for course in cquery:
+        courses.append(course)
+    form = request.form
+
+    if request.method == "POST" and 'update' in request.form:
+        title = form.get('titleInput')
+
+        if title == '':
+            title = lab.title
+
+        group_codes = form.getlist('group[]')
+        try:
+            group_codes.remove('Группа')
+        except ValueError:
+            pass
+
+        course_titles = form.getlist('course[]')
+        try:
+            course_titles.remove('Предмет')
+        except ValueError:
+            pass
+
+        lab.title = title
+        missing = False
+        for c in lc:
+            if c.title not in course_titles:
+                lab.courses.remove(c)
+        for c in course_titles:
+            crs =  Course.get(title=c)
+            if crs not in lc:
+                lab.courses.add(crs)
+
+
+        for g in lg:
+            if g.code not in group_codes:
+                lab.groups.remove(g)
+        for code in group_codes:
+            g = Group.get(code=code)
+            if g not in lg:
+                for c in lc:
+                    if g not in c.groups:
+                        missing = True
+                    else:
+                        missing = False
+                        break
+                if missing:
+                    flash('Группа ' + g.code + " не записана на один из курсов где используется лабораторная работа!",
+                          "warning")
+                    return render_template('teacher/lab-item.html', lab=lab, lg=lg, lc=lc, courses=courses,
+                                           groups=groups, teacher=teacher)
+                else:
+                    lab.groups.add(g)
+
+        flash('Данные успешно обновлены!', 'success')
+
+
+    return render_template('teacher/lab-item.html', lab=lab, lg=lg, lc=lc, courses=courses, groups=groups, teacher=teacher)
+
+@app.route('/teacher-<tid>/course-<cid>/lab-<lid>/variants/', methods=['GET', 'POST'])
+def variant_list(tid, cid, lid):
+    if not authorized():
+        return redirect(url_for('login'))
+    teacher = User.get(id=tid)
+    if teacher.id != current_user.id:
+        return redirect(url_for('login'))
+
+    course = Course.get(id=cid)
+    lab = Lab.get(id=lid)
+
+    variants = select(l.variants for l in Lab if l.id == lid)
+
+    return render_template('teacher/variants.html', lab=lab, variants=variants, teacher=teacher, course=course)
+
+
+@app.route('/teacher-<tid>/course-<cid>/lab-<lid>/create_variant/', methods=['GET', 'POST'])
+def create_variant(tid, cid, lid):
+    if not authorized():
+        return redirect(url_for('login'))
+    teacher = User.get(id=tid)
+    if teacher.id != current_user.id:
+        return redirect(url_for('login'))
+
+    course = Course.get(id=cid)
+    lab = Lab.get(id=lid)
+    groups = select(g for g in Group if course in g.courses).prefetch(Student)
+
+    groups = sorted(groups, key=lambda group: group.code)
+    data = []
+
+    for group in groups:
+        data.append((group.code, sorted(group.students, key=lambda stud : stud.surname)))
+
+    form = request.form
+    if request.method == "POST" and 'create' in request.form:
+        number = form.get('numberInput')
+        title = form.get('nameInput')
+        description = form.get('descriptionInput')
+        studentid = form.get('student')
+
+        if number == '':
+            flash('Не задан номер варианта!', 'warning')
+            return render_template('teacher/variant-creation.html', lab=lab, groups=groups, data=data, teacher=teacher)
+        if title == '':
+            flash('Не указано название варианта!', 'warning')
+            return render_template('teacher/variant-creation.html', lab=lab, groups=groups, data=data, teacher=teacher)
+        if description == '':
+            flash('Не указано описания варианта!', 'warning')
+            return render_template('teacher/variant-creation.html', lab=lab, groups=groups, data=data, teacher=teacher)
+
+        if studentid == 'Студент':
+            v = Variant(
+                number=number,
+                title=title,
+                description=description,
+                lab=lab
+            )
+        else:
+            v = Variant(
+                number=number,
+                title=title,
+                description=description,
+                student=Student.get(id=studentid),
+                lab=lab
+            )
+        flash('Вариант задания для лабораторной работы успешно создан!', "success")
+
+    return render_template('teacher/variant-creation.html', lab=lab, groups=groups, data=data, teacher=teacher)
+
+
+@app.route('/teacher-<tid>/course-<cid>/lab-<lid>/variant-<vid>/', methods=['GET', 'POST'])
+def test_list(tid, cid, lid, vid,):
+    if not authorized():
+        return redirect(url_for('login'))
+    teacher = User.get(id=tid)
+    if teacher.id != current_user.id:
+        return redirect(url_for('login'))
 
 @app.route('/', methods=['GET', 'POST'])
 @app.route('/index', methods=['GET', 'POST'])
 def login():
-    '''
     if authorized():
         if Teacher.get(id=current_user.id):
             return redirect(url_for('courses', id=current_user.id))
@@ -246,7 +400,7 @@ def login():
             return redirect(url_for('student'))
         if current_user.is_admin:
             return redirect(url_for('admin'))
-    '''
+
     form = request.form
     if request.method == 'POST' and 'authForm' in request.form:
         login = form.get("inputLogin")
@@ -374,24 +528,30 @@ def group_create():
     form = request.form
     if request.method == 'POST' and 'groupList' in request.files:
         filename = group_lists.save(request.files['groupList'])
-        group_name = form.get("groupCodeInput")
+        group_code = form.get("groupCodeInput")
 
-        if group_name == '':
+        if group_code == '':
             flash("Укажите название группы!", "warning")
-            return render_template("teacher/group-create.html")
+            return render_template("teacher/group-create.html", teacher=user)
+
+        if Group.get(code=group_code) is None:
+            pass
+        else:
+            flash("Группа с таким номером уже существует!", "danger")
+            return render_template("teacher/group-create.html", teacher=user)
 
         try:
             with open(filename) as obj:
                 lst = csv_reader(obj)
         except IOError:
             flash("Ошибка чтения файла!", "danger")
-            return render_template("teacher/group-create.html")
+            return render_template("teacher/group-create.html", teacher=user)
         except KeyError:
             flash("Неверная структура файла!", "danger")
-            return render_template("teacher/group-create.html")
+            return render_template("teacher/group-create.html", teacher=user)
 
         g = Group(
-            code=group_name
+            code=group_code
         )
 
         for i in lst:
@@ -404,9 +564,9 @@ def group_create():
                 group=g,
                 activated=False
             )
-        flash("Группа " + group_name + " успешно создана!", "success")
+        flash("Группа " + group_code + " успешно создана!", "success")
 
-    return render_template("teacher/group-create.html")
+    return render_template("teacher/group-create.html", teacher=user)
 
 
 @app.route('/student')

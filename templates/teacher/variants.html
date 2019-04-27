@@ -54,7 +54,7 @@
                             <td>{{ var.title }}</td>
                             <td><a href="{{ url_for('test_list', tid=teacher.id, cid=course.id, lid=lab.id, vid=var.id)}}">Тесты</a></td>
                             <td>
-                                <a href="#"><i class="material-icons">
+                                <a href="{{ url_for('variant_edit', tid=teacher.id, cid=course.id, lid=lab.id, vid=var.id)}}"><i class="material-icons">
                                     create
                                 </i></a>
                                 <a href="#"><i class="material-icons">

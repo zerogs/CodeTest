@@ -16,10 +16,10 @@
 <div class="d-flex" id="wrapper">
     <!-- sidebar -->
     <div class="bg-light border-right" id="sidebar-wrapper">
-        <div class="sidebar-heading">Сode Test</div>
+        <div class="sidebar-heading">Code Test</div>
         <div class="list-group list-group-flush">
             <a href={{ url_for("course_list", id=teacher.id) }} class="list-group-item list-group-item-action bg-light">Предметы</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Shortcuts</a>
+            <a href={{ url_for("group_create")}} class="list-group-item list-group-item-action bg-light">Создать группу</a>
             <a href="#" class="list-group-item list-group-item-action bg-light">Overview</a>
             <a href="#" class="list-group-item list-group-item-action bg-light">Events</a>
             <a href="#" class="list-group-item list-group-item-action bg-light">Profile</a>
@@ -34,25 +34,23 @@
         <div class="container-fluid">
             <div class="row">
                 <div class="col-6">
-                    <h1 class="mt-4 mb-3">Добавление группы студентов</h1>
-                    <form method="post" enctype=multipart/form-data >
-                        <h3>Загрузка CSV файла с группой</h3>
+                    <h2 class="mt-4">Редактирование варианта лабораторной работы {{ lab.title }}</h2>
+                    <form method="post" id="varEdit">
                         <div class="form-group">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                            <label for="groupCodeInput">Имя группы</label>
-                            <input type="text" name="groupCodeInput" class="form-control" placeholder="Имя группы">
+                            <label for="numberInput">Номер</label>
+                            <input type="text" name="numberInput" id="numberInput" class="form-control" placeholder="{{ var.number }}">
                         </div>
-                        <p>CSV файл должен содержать данные в следующем порядке c разделителем ";":</p>
-                        <p>Начало файла:</p>
-                        <p>last_name;first_name;patronymic</p>
-                        <p>'Фамилия';'Имя';'Отчество'</p>
-                        <p>...</p>
-                        <div class="custom-file mb-2">
-                            <input type="file" name="groupList" class="custom-file-input" id="customFile">
-                            <label class="custom-file-label" for="customFile">Выберите файл</label>
+                        <div class="form-group">
+                            <label for="nameInput">Название</label>
+                            <input type="text" name="nameInput" id="nameInput" class="form-control" placeholder="{{ var.title }}">
                         </div>
-
-                        <button type="submit" name="createGroup" class="btn btn-primary">Загрузить</button>
+                        <div class="form-group">
+                            <label for="descriptionInput">Описание</label>
+                            <input type="text" name="descriptionInput" id="descriptionInput" class="form-control" placeholder="{{ var.description }}">
+                        </div>
+                        <button type="submit" name="update" class="btn btn-primary">Обновить</button>
+                        <button type="submit" class="btn btn-danger">Удалить</button>
                     </form>
                     {% with messages = get_flashed_messages(with_categories=true) %}
                       <!-- Categories: success (green), info (blue), warning (yellow), danger (red) -->

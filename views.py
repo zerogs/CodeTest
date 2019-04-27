@@ -144,10 +144,33 @@ def course_edit(courseid, teacherid):
             if g not in cg:
                 course.groups.add(g)
 
-        return redirect(url_for('courses',id=teacherid))
+        return redirect(url_for('course_list', id=teacherid))
 
     return render_template('teacher/course-item.html', show=show, course=course, groups=groups, cg=cg)
 
+@app.route('/teacher-<id>/courses/')
+def course_list(id):
+    if current_user.id != int(id):
+        return redirect(url_for("login"))
+
+    teacher = Teacher.get(id=id)
+    courses = teacher.courses
+    out = []
+    s = ''
+    for course in courses:
+        for group in course.groups:
+            s += group.code + " "
+        s = sorted(s.split(' '))
+        for i in s:
+            if i == ' ':
+                s.remove(i)
+        s = ' '.join(s)
+        out.append((course.id, course.title, s))
+        s = ''
+
+    out = sorted(out)
+
+    return render_template('teacher/courses.html', courses=out, teacher=teacher)
 
 @app.route('/teacher-<id>/create_lab/', methods=['GET', 'POST'])
 def create_lab(id):
@@ -231,6 +254,7 @@ def labs_list(id, cid):
         s = ''
 
     return render_template('teacher/labs.html', labs=out, teacher=teacher, course=course)
+
 
 @app.route('/teacher-<tid>/lab-<lid>/edit', methods=['GET', 'POST'])
 def lab_edit(tid, lid):
@@ -381,6 +405,38 @@ def create_variant(tid, cid, lid):
     return render_template('teacher/variant-creation.html', lab=lab, data=data, teacher=teacher)
 
 
+@app.route('/teacher-<tid>/course-<cid>/lab-<lid>/variant-<vid>/edit', methods=['GET', 'POST'])
+def variant_edit(tid, cid, lid, vid):
+    if not authorized():
+        return redirect(url_for('login'))
+    teacher = User.get(id=tid)
+    if teacher.id != current_user.id:
+        return redirect(url_for('login'))
+
+    lab = Lab.get(id=lid)
+    var = Variant.get(id=vid)
+
+    form = request.form
+    if request.method == "POST" and 'update' in request.form:
+        number = form.get('numberInput')
+        title = form.get('nameInput')
+        desc = form.get('descriptionInput')
+
+        if number == '':
+            number = var.number
+        if title == '':
+            title = var.title
+        if desc == '':
+            desc = var.description
+
+        var.number = number
+        var.title = title
+        var.description = desc
+
+        flash('Данные варианта обновлены успешно!', 'success')
+
+    return render_template('teacher/variant-item.html', teacher=teacher, lab=lab, var=var)
+
 @app.route('/teacher-<tid>/course-<cid>/lab-<lid>/variant-<vid>/tests', methods=['GET', 'POST'])
 def test_list(tid, cid, lid, vid,):
     if not authorized():
@@ -427,6 +483,34 @@ def create_test(tid, lid, vid):
 
     return render_template('teacher/test-creation.html', teacher=teacher, lab=lab, var=var)
 
+@app.route('/teacher-<tid>/lab-<lid>/variant-<vid>/test-<tsid>/edit', methods=['GET', 'POST'])
+def test_edit(tid, lid, vid, tsid):
+    if not authorized():
+        return redirect(url_for('login'))
+    teacher = User.get(id=tid)
+    if teacher.id != current_user.id:
+        return redirect(url_for('login'))
+
+    lab = Lab.get(id=lid)
+    var = Variant.get(id=vid)
+    test = Test.get(id=tsid)
+
+    form = request.form
+    if request.method == "POST" and 'update' in request.form:
+        inpt = form.get('inputInput')
+        outpt = form.get('outputInput')
+
+        if inpt == '':
+            inpt = test.input
+        if outpt == '':
+            outpt = test.output
+
+        test.input = inpt
+        test.output = outpt
+
+        flash('Данные теста успешно обновлены!', 'success')
+
+    return render_template('teacher/test-item.html', teacher=teacher, lab=lab, var=var, test=test)
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -434,7 +518,7 @@ def create_test(tid, lid, vid):
 def login():
     if authorized():
         if Teacher.get(id=current_user.id):
-            return redirect(url_for('courses', id=current_user.id))
+            return redirect(url_for('course_list', id=current_user.id))
         if Student.get(id=current_user.id):
             return redirect(url_for('student'))
         if current_user.is_admin:
@@ -452,7 +536,7 @@ def login():
                 login_user(user, remember=True, force=True)
                 user.last_login = datetime.now()
                 if Teacher.get(id=current_user.id):
-                    return redirect(url_for('courses',id=current_user.id))
+                    return redirect(url_for('course_list', id=current_user.id))
                 if Student.get(id=current_user.id):
                     return redirect(url_for('student'))
                 if current_user.is_admin:
@@ -531,31 +615,6 @@ def create_teacher():
         flash("Учётная запись преподавателя успешно создана! Регистрационный код: " + reg_code_final, "success")
 
     return render_template('admin/create_teacher.html',reg_code=reg_code)
-
-
-@app.route('/teacher-<id>/courses/')
-def courses(id):
-    if current_user.id != int(id):
-        return redirect(url_for("login"))
-
-    teacher = Teacher.get(id=id)
-    courses = teacher.courses
-    out = []
-    s = ''
-    for course in courses:
-        for group in course.groups:
-            s += group.code + " "
-        s = sorted(s.split(' '))
-        for i in s:
-            if i == ' ':
-                s.remove(i)
-        s = ' '.join(s)
-        out.append((course.id, course.title, s))
-        s = ''
-
-    out = sorted(out)
-
-    return render_template('teacher/courses.html', courses=out, teacher=teacher)
 
 
 @app.route('/group_create/', methods=['GET', 'POST'])

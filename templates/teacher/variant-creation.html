@@ -41,35 +41,35 @@
                             <label for="numberInput">Номер</label>
                             <input type="text" name="numberInput" id="numberInput" class="form-control" placeholder="Номер">
                         </div>
-                        <nav>
-                            <div class="nav nav-tabs">
-                                {% for obj in data %}
-                                    <a class="nav-item nav-link" data-toggle="tab" href="#{{ obj[0] }}">{{ obj[0] }}</a>
-                                {% endfor %}
-                            </div>
-                        </nav>
-                        <div class="tab-content">
+                        <ul class="nav nav-tabs" id="myTab" role="tablist">
                             {% for obj in data %}
-                          <div id="{{ obj[0] }}" class="tab-pane fade">
-                            <div id="student-selector" class="form-group">
-                            <label>Студент</label>
-                            <div class="student-selector d-flex">
-                                <select class="select-group custom-select mb-2" data-index="0" name="student">
-                                    <option selected>Студент</option>
-                                    {% for student in obj[1] %}
-                                        <option value={{ student.id }}> {{ student.surname + ' ' + student.name }}</option>
-                                    {% endfor %}
-                                </select>
-                                <i class="material-icons mt-2 ml-2 delete-course" style="color: red; cursor: pointer;">
-                                    clear
-                                </i>
-                            </div>
-                        </div>
-                          </div>
+                          <li class="nav-item">
+                            <a class="nav-item nav-link" id="{{ obj[0] }}-tab" role="tab" aria-controls="{{ obj[0] }}" data-toggle="tab" href="#{{ obj[0] }}">{{ obj[0] }}</a>
+                          </li>
+                            {% endfor %}
+                        </ul>
+                        <div class="tab-content" id="myTabContent">
+                            {% for obj in data %}
+                              <div id="{{ obj[0] }}" class="tab-pane fade" role="tabpanel"  aria-labelledby="{{ obj[0] }}-tab">
+                                    <div id="student-selector" class="form-group">
+                                        <label>Студент</label>
+                                        <div class="student-selector d-flex">
+                                            <select class="select-group custom-select mb-2" data-index="0" name="student">
+                                                <option selected>Студент</option>
+                                                {% for student in obj[1] %}
+                                                    <option value={{ student.id }}> {{ student.surname + ' ' + student.name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                            <i class="material-icons mt-2 ml-2 delete-course" style="color: red; cursor: pointer;">
+                                                clear
+                                            </i>
+                                        </div>
+                                    </div>
+                              </div>
                             {% endfor %}
                         </div>
                         <div class="form-group">
-                            <label for="descriptionInput">Название</label>
+                            <label for="nameInput">Название</label>
                             <input type="text" name="nameInput" id="nameInput" class="form-control" placeholder="Название">
                         </div>
                         <div class="form-group">

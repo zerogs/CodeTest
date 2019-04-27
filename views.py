@@ -1,7 +1,7 @@
 from app import app, group_lists, programs
 from flask import render_template, request, redirect, url_for, flash
 from flask_login import current_user, login_user, logout_user
-from models import db, Admin,User, Teacher, Student, Variant, Group, Course, Lab,  generate_password_hash
+from models import db, Admin,User, Teacher, Student, Variant, Group, Course, Lab, Test, generate_password_hash
 from pony.orm import select
 from datetime import datetime
 from secrets import token_hex
@@ -194,7 +194,7 @@ def create_lab(id):
 
         flash("Лабораторная работа " + title +  " создана!", "success")
 
-    return render_template('teacher/lab-creation.html',show=show, courses=allcourses, groups=allgroups)
+    return render_template('teacher/lab-creation.html',teacher=teacher, show=show, courses=allcourses, groups=allgroups)
 
 
 @app.route('/teacher-<id>/course-<cid>/labs', methods=['GET', 'POST'])
@@ -341,7 +341,6 @@ def create_variant(tid, cid, lid):
 
     groups = sorted(groups, key=lambda group: group.code)
     data = []
-
     for group in groups:
         data.append((group.code, sorted(group.students, key=lambda stud : stud.surname)))
 
@@ -354,13 +353,13 @@ def create_variant(tid, cid, lid):
 
         if number == '':
             flash('Не задан номер варианта!', 'warning')
-            return render_template('teacher/variant-creation.html', lab=lab, groups=groups, data=data, teacher=teacher)
+            return render_template('teacher/variant-creation.html', lab=lab, data=data, teacher=teacher)
         if title == '':
             flash('Не указано название варианта!', 'warning')
-            return render_template('teacher/variant-creation.html', lab=lab, groups=groups, data=data, teacher=teacher)
+            return render_template('teacher/variant-creation.html', lab=lab, data=data, teacher=teacher)
         if description == '':
             flash('Не указано описания варианта!', 'warning')
-            return render_template('teacher/variant-creation.html', lab=lab, groups=groups, data=data, teacher=teacher)
+            return render_template('teacher/variant-creation.html', lab=lab, data=data, teacher=teacher)
 
         if studentid == 'Студент':
             v = Variant(
@@ -379,16 +378,56 @@ def create_variant(tid, cid, lid):
             )
         flash('Вариант задания для лабораторной работы успешно создан!', "success")
 
-    return render_template('teacher/variant-creation.html', lab=lab, groups=groups, data=data, teacher=teacher)
+    return render_template('teacher/variant-creation.html', lab=lab, data=data, teacher=teacher)
 
 
-@app.route('/teacher-<tid>/course-<cid>/lab-<lid>/variant-<vid>/', methods=['GET', 'POST'])
+@app.route('/teacher-<tid>/course-<cid>/lab-<lid>/variant-<vid>/tests', methods=['GET', 'POST'])
 def test_list(tid, cid, lid, vid,):
     if not authorized():
         return redirect(url_for('login'))
     teacher = User.get(id=tid)
     if teacher.id != current_user.id:
         return redirect(url_for('login'))
+
+    lab = Lab.get(id=lid)
+    var = Variant.get(id=vid)
+
+    return render_template('teacher/tests.html', teacher=teacher, lab=lab, var=var)
+
+
+@app.route('/teacher-<tid>/lab-<lid>/variant-<vid>/create_test', methods=['GET', 'POST'])
+def create_test(tid, lid, vid):
+    if not authorized():
+        return redirect(url_for('login'))
+    teacher = User.get(id=tid)
+    if teacher.id != current_user.id:
+        return redirect(url_for('login'))
+
+    lab = Lab.get(id=lid)
+    var = Variant.get(id=vid)
+
+    form = request.form
+    if request.method == 'POST' and 'create' in request.form:
+        input = form.get('inputInput')
+        output = form.get('outputInput')
+
+        if input == '':
+            flash('Не указаны входные данные!', 'warning')
+            return render_template('teacher/test-creation.html', teacher=teacher, lab=lab, var=var)
+        if output == '':
+            flash('Не указаны выходные данные!', 'warning')
+            return render_template('teacher/test-creation.html', teacher=teacher, lab=lab, var=var)
+
+        t = Test(
+            input=input,
+            output=output,
+            variant=var
+        )
+        flash('Тест для варианта ' + str(var.number) +' успешно создан!', 'success')
+
+    return render_template('teacher/test-creation.html', teacher=teacher, lab=lab, var=var)
+
+
 
 @app.route('/', methods=['GET', 'POST'])
 @app.route('/index', methods=['GET', 'POST'])

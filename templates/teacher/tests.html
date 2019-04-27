@@ -19,7 +19,7 @@
         <div class="sidebar-heading">Code Test</div>
         <div class="list-group list-group-flush">
             <a href="{{ url_for("course_list", id=teacher.id) }}" class="list-group-item list-group-item-action bg-light">Предметы</a>
-            <a href="{{ url_for("group_create")}}" class="list-group-item list-group-item-action bg-light">Создать группу</a>
+            <a href="{{ url_for("group_list", tid=teacher.id)}}" class="list-group-item list-group-item-action bg-light">Группы</a>
             <a href="#" class="list-group-item list-group-item-action bg-light">Overview</a>
             <a href="#" class="list-group-item list-group-item-action bg-light">Events</a>
             <a href="#" class="list-group-item list-group-item-action bg-light">Profile</a>
@@ -29,7 +29,6 @@
     <!-- end sidebar -->
 
     <!-- content -->
-
     <div id="page-content-wrapper">
         <div class="container-fluid">
             <div class="row">

@@ -110,6 +110,7 @@ def course_edit(courseid, teacherid):
     teacher = User.get(id=teacherid)
     if teacher.id != current_user.id:
         return redirect(url_for('login'))
+
     show = isinstance(current_user, Admin)
     course = Course.get(id=courseid, teacher=Teacher.get(id=teacherid))
     cg = course.groups
@@ -146,7 +147,7 @@ def course_edit(courseid, teacherid):
 
         return redirect(url_for('course_list', id=teacherid))
 
-    return render_template('teacher/course-item.html', show=show, course=course, groups=groups, cg=cg)
+    return render_template('teacher/course-item.html',teacher=teacher, show=show, course=course, groups=groups, cg=cg)
 
 @app.route('/teacher-<id>/courses/')
 def course_list(id):
@@ -332,8 +333,8 @@ def lab_edit(tid, lid):
 
         flash('Данные успешно обновлены!', 'success')
 
-
     return render_template('teacher/lab-item.html', lab=lab, lg=lg, lc=lc, courses=courses, groups=groups, teacher=teacher)
+
 
 @app.route('/teacher-<tid>/course-<cid>/lab-<lid>/variants/', methods=['GET', 'POST'])
 def variant_list(tid, cid, lid):
@@ -513,6 +514,152 @@ def test_edit(tid, lid, vid, tsid):
     return render_template('teacher/test-item.html', teacher=teacher, lab=lab, var=var, test=test)
 
 
+@app.route('/group_create/', methods=['GET', 'POST'])
+def group_create():
+    if not authorized() and not isinstance(current_user, Admin):
+        return redirect(url_for('login'))
+
+    form = request.form
+    if request.method == 'POST' and 'groupList' in request.files:
+        filename = group_lists.save(request.files['groupList'])
+        group_code = form.get("groupCodeInput")
+
+        if group_code == '':
+            flash("Укажите название группы!", "warning")
+            return render_template("admin/group-create.html", teacher=current_user)
+
+        if Group.get(code=group_code) is None:
+            pass
+        else:
+            flash("Группа с таким номером уже существует!", "danger")
+            return render_template("admin/group-create.html", teacher=current_user)
+
+        try:
+            with open(filename) as obj:
+                lst = csv_reader(obj)
+        except IOError:
+            flash("Ошибка чтения файла!", "danger")
+            return render_template("admin/group-create.html", teacher=current_user)
+        except KeyError:
+            flash("Неверная структура файла!", "danger")
+            return render_template("admin/group-create.html", teacher=current_user)
+
+        g = Group(
+            code=group_code
+        )
+
+        for i in lst:
+            reg_code = token_hex(7)
+            Student(
+                surname=i[0],
+                name=i[1],
+                patronymic=i[2],
+                reg_code=reg_code,
+                group=g,
+                activated=False
+            )
+        flash("Группа " + group_code + " успешно создана!", "success")
+
+    return render_template("admin/group-create.html", teacher=current_user)
+
+
+@app.route('/teacher-<tid>/groups', methods=['GET', 'POST'] )
+def group_list(tid):
+    if not authorized() and not isinstance(current_user, Teacher):
+        return redirect(url_for('login'))
+    teacher = Teacher.get(id=tid)
+    if teacher.id != current_user.id:
+        return redirect(url_for('login'))
+
+    courses = teacher.courses
+    groups = []
+    for course in courses:
+        for group in course.groups:
+            if group not in groups:
+                groups.append(group)
+    out = []
+    cs = []
+    for group in groups:
+        for course in group.courses:
+            cs.append((course.title, course.id))
+        cs = sorted(cs)
+        out.append((group.id, group.code, cs))
+        cs = []
+
+    out = sorted(out)
+
+    return render_template('teacher/groups.html', teacher=teacher, groups=out)
+
+
+@app.route('/group-<gid>/students', methods=['GET', 'POST'])
+def student_list(gid):
+    if not authorized() and not (isinstance(current_user, Admin) or isinstance(current_user, Teacher)):
+        return redirect(url_for('login'))
+
+    group = Group.get(id=gid)
+    students = group.students
+
+    students = sorted(students, key=lambda stud: stud.surname + stud.name)
+
+    return render_template('teacher/students.html', teacher=current_user, group=group, students=students)
+
+
+@app.route('/admin/student-<sid>/edit', methods=['GET', 'POST'])
+def student_edit(sid):
+    if not authorized() and not isinstance(current_user, Admin):
+        return redirect(url_for('login'))
+
+    student = Student.get(id=sid)
+
+    groups = []
+    query = select(group.code for group in Group)[:]
+    for group in query:
+        groups.append(group)
+
+    form = request.form
+    if request.method == "POST" and 'update' in request.form:
+        surname = form.get('surnameInput')
+        name = form.get('nameInput')
+        patronymic = form.get('patronymicInput')
+        login = form.get('loginInput')
+        group = form.get('group')
+        email = form.get('emailInput')
+
+        if surname == '':
+            surname = student.surname
+        if name == '':
+            name = student.name
+        if patronymic == '':
+            patronymic = student.patronymic
+        if login == '':
+            login = student.login
+        if email == '':
+            email = student.email
+        if group != student.group.code:
+            activated = student.activated
+            student.delete()
+            s = Student(
+                surname=surname,
+                name=name,
+                patronymic=patronymic,
+                login=login,
+                group=Group.get(code=group),
+                email=email,
+                activated=activated
+            )
+
+        student.surname = surname
+        student.name = name
+        student.patronymic = patronymic
+        student.login = login
+        student.email = email
+
+        flash('Данные студента успешно обновлены!', 'success')
+
+    return render_template('admin/student-item.html', teacher=current_user, student=student, groups=groups)
+
+
+
 @app.route('/', methods=['GET', 'POST'])
 @app.route('/index', methods=['GET', 'POST'])
 def login():
@@ -582,7 +729,7 @@ def admin():
 
 @app.route('/admin/create_teacher', methods=['GET', 'POST'])
 def create_teacher():
-    if not authorized() and not current_user.is_admin:
+    if not authorized() and not isinstance(current_user, Admin):
         return redirect(url_for('login'))
 
     form = request.form
@@ -615,56 +762,6 @@ def create_teacher():
         flash("Учётная запись преподавателя успешно создана! Регистрационный код: " + reg_code_final, "success")
 
     return render_template('admin/create_teacher.html',reg_code=reg_code)
-
-
-@app.route('/group_create/', methods=['GET', 'POST'])
-def group_create():
-    user = User.get(id=current_user.id)
-    if not isinstance(user, Teacher):
-        return redirect(url_for('login'))
-
-    form = request.form
-    if request.method == 'POST' and 'groupList' in request.files:
-        filename = group_lists.save(request.files['groupList'])
-        group_code = form.get("groupCodeInput")
-
-        if group_code == '':
-            flash("Укажите название группы!", "warning")
-            return render_template("teacher/group-create.html", teacher=user)
-
-        if Group.get(code=group_code) is None:
-            pass
-        else:
-            flash("Группа с таким номером уже существует!", "danger")
-            return render_template("teacher/group-create.html", teacher=user)
-
-        try:
-            with open(filename) as obj:
-                lst = csv_reader(obj)
-        except IOError:
-            flash("Ошибка чтения файла!", "danger")
-            return render_template("teacher/group-create.html", teacher=user)
-        except KeyError:
-            flash("Неверная структура файла!", "danger")
-            return render_template("teacher/group-create.html", teacher=user)
-
-        g = Group(
-            code=group_code
-        )
-
-        for i in lst:
-            reg_code = token_hex(7)
-            Student(
-                surname=i[0],
-                name=i[1],
-                patronymic=i[2],
-                reg_code=reg_code,
-                group=g,
-                activated=False
-            )
-        flash("Группа " + group_code + " успешно создана!", "success")
-
-    return render_template("teacher/group-create.html", teacher=user)
 
 
 @app.route('/student')

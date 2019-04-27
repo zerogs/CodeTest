@@ -34,37 +34,34 @@
         <div class="container-fluid">
             <div class="row">
                 <div class="col-6">
-                    <h2 class="mt-4">Лабораторные работы по предмету {{ course.title }}  <button type="submit" onClick="window.location.replace('{{ url_for("create_lab", id=teacher.id) }}')" class="btn btn-primary">Создать</button></h2>
-
+                    <h1 class="mt-4">Студенты группы {{ group.code }}</h1>
                     <table class="table text-center mt-4">
                         <thead class="thead-dark">
                         <tr>
                             <th scope="col">ID</th>
-                            <th scope="col">Название</th>
-                            <th scope="col">Предметы</th>
-                            <th scope="col">Группы</th>
-                            <th scope="col"></th>
+                            <th scope="col">Фамилия</th>
+                            <th scope="col">Имя</th>
+                            <th scope="col">Отчество</th>
                             <th scope="col"></th>
                         </tr>
                         </thead>
                         <tbody>
+                        {% for student in students %}
                         <tr>
-                            {% for lab in labs %}
-                            <th scope="row">{{ lab[0] }}</th>
-                            <td>{{ lab[1] }}</td>
-                            <td>{{ lab[2] }}</td>
-                            <td>{{ lab[3] }}</td>
-                            <td><a href={{ url_for('variant_list', tid=teacher.id, cid=course.id, lid=lab[0]) }}>Варианты</a></td>
+                            <th scope="row">{{ student.id }}</th>
+                            <td>{{ student.surname }}</td>
+                            <td>{{ student.name }}</td>
+                            <td>{{ student.patronymic }}</td>
                             <td>
-                                <a href="{{ url_for('lab_edit', tid=teacher.id, lid=lab[0]) }}"><i class="material-icons">
+                                <a href="#"><i class="material-icons">
                                     create
                                 </i></a>
                                 <a href="#"><i class="material-icons">
                                     delete
                                 </i></a>
                             </td>
-                            {% endfor %}
                         </tr>
+                        {% endfor %}
                         </tbody>
                     </table>
                     <div class="float-right text-right">

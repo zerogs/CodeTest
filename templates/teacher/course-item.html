@@ -16,10 +16,10 @@
 <div class="d-flex" id="wrapper">
     <!-- sidebar -->
     <div class="bg-light border-right" id="sidebar-wrapper">
-        <div class="sidebar-heading">Ванек не толстый (c)</div>
+        <div class="sidebar-heading">Code Test</div>
         <div class="list-group list-group-flush">
-            <a href="#" class="list-group-item list-group-item-action bg-light">Dashboard</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Shortcuts</a>
+            <a href="{{ url_for("course_list", id=teacher.id) }}" class="list-group-item list-group-item-action bg-light">Предметы</a>
+            <a href="{{ url_for("group_list", tid=teacher.id)}}" class="list-group-item list-group-item-action bg-light">Группы</a>
             <a href="#" class="list-group-item list-group-item-action bg-light">Overview</a>
             <a href="#" class="list-group-item list-group-item-action bg-light">Events</a>
             <a href="#" class="list-group-item list-group-item-action bg-light">Profile</a>
@@ -82,6 +82,17 @@
                         </div>
                         <button type="submit" name="update" class="btn btn-primary">Обновить</button>
                     </form>
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                      <!-- Categories: success (green), info (blue), warning (yellow), danger (red) -->
+                      {% if messages %}
+                        {% for category, message in messages %}
+                          <div class="alert alert-{{ category }} alert-dismissible" role="alert">
+                          <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                          <!-- <strong>Title</strong> --> {{ message }}
+                          </div>
+                        {% endfor %}
+                      {% endif %}
+                    {% endwith %}
                 </div>
             </div>
         </div>

@@ -6,7 +6,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
             integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
             crossorigin="anonymous"></script>
-    <link rel="stylesheet" href={{ url_for('static', filename="css/bootstrap.min.css")}}>
+  <link rel="stylesheet" href={{ url_for('static', filename="css/bootstrap.min.css")}}>
     <link rel="stylesheet" href={{ url_for('static', filename="css/styles.css")}}>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons"
           rel="stylesheet">
@@ -34,31 +34,31 @@
         <div class="container-fluid">
             <div class="row">
                 <div class="col-6">
-                    <h1 class="mt-4">Создание предмета</h1>
-                    <form method="post", id="updateCourse">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <h1 class="mt-4">Редактирование студента {{ student.surname + " " + student.name }}</h1>
+                    <form method="post" id="studentUpdate">
                         <div class="form-group">
-                            <label for="nameInput">Название</label>
-                            <input type="text" name="nameInput" id="nameInput" class="form-control" placeholder="Название">
+                            <label for="surnameInput">Фамилия</label>
+                            <input type="text" name="surnameInput" id="surnameInput" class="form-control" placeholder="{{ student.surname }}">
                         </div>
-                        {% if show %}
                         <div class="form-group">
-                            <label>Преподаватель</label>
-                            <select class="custom-select">
-                                <option selected>Преподаватель</option>
-                                <option value="1">One</option>
-                                <option value="2">Two</option>
-                                <option value="3">Three</option>
-                            </select>
+                            <label for="nameInput">Имя</label>
+                            <input type="text" name="nameInput" id="nameInput" class="form-control" placeholder="{{ student.name }}">
                         </div>
-                        {% endif %}
+                        <div class="form-group">
+                            <label for="patronymicInput">Отчество</label>
+                            <input type="text" name="patronymicInput" id="patronymicInput" class="form-control" placeholder="{{ student.patronymic }}">
+                        </div>
+                        <div class="form-group">
+                            <label for="loginInput">Логин</label>
+                            <input type="text" name="loginInput" id="loginInput" class="form-control" placeholder="{{ student.login }}">
+                        </div>
                         <div id="group_selectors" class="form-group">
                             <label>Группы</label>
                             <div class="group-selector d-flex">
-                                <select class="select-group custom-select mb-2" data-index="0" name="group[]">
-                                    <option selected>Группа</option>
+                                <select class="select-group custom-select mb-2" data-index="0" name="group">
+                                    <option selected>{{ student.group.code }}</option>
                                     {% for group in groups %}
-                                    <option value={{ group }}> {{ group }}</option>
+                                    <option value={{ group.code }}> {{ group.code }}</option>
                                     {% endfor %}
                                 </select>
                                 <i class="material-icons mt-2 ml-2 delete-course" style="color: red; cursor: pointer;">
@@ -66,7 +66,11 @@
                                 </i>
                             </div>
                         </div>
-                        <button type="submit" name="create" class="btn btn-primary">Создать</button>
+                        <div class="form-group">
+                            <label for="emailInput">E-mail</label>
+                            <input type="email" id="emailInput" class="form-control" placeholder="{{ student.email }}">
+                        </div>
+                        <button type="submit" name="update" class="btn btn-primary">Обновить</button>
                     </form>
                     {% with messages = get_flashed_messages(with_categories=true) %}
                       <!-- Categories: success (green), info (blue), warning (yellow), danger (red) -->
@@ -90,21 +94,5 @@
 
     <!-- end footer -->
 </div>
-<script type="application/javascript">
-    $("body").on("change", "select.select-group", (el) => {
-        let element = $(el.target);
-        let index = parseInt(element.attr("data-index")) + 1;
-        if ($("select.group-selector[data-index=" + index + "]").length === 0) {
-            let new_el = element.parent().clone();
-            new_el.find("select").attr("data-index", index);
-            $("#group_selectors").append(new_el);
-        }
-    });
-
-    $("body").on("click", "i.delete-course", (el) => {
-        let element = $(el.target);
-        element.parent("div.group-selector")[0].remove();
-    });
-</script>
 </body>
 </html>

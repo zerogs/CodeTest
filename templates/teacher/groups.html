@@ -52,7 +52,7 @@
                             <td>{{ group[1] }}</td>
                             <td>
                                 {% for course in group[2] %}
-                                    <a href="{{ url_for('labs_list',id=teacher.id, cid=course[1])}}">{{ course[0] }}</a>
+                                    <a href="{{ url_for('group_labs_list',id=teacher.id, cid=course[1], code=group[1])}}">{{ course[0] }}</a>
                                 {% endfor %}
                             </td>
 

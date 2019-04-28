@@ -47,8 +47,8 @@
                         </tr>
                         </thead>
                         <tbody>
+                        {% for var in variants %}
                         <tr>
-                            {% for var in variants %}
                             <th scope="row">{{ var.id }}</th>
                             <td>{{ var.number}}</td>
                             <td>{{ var.title }}</td>
@@ -61,8 +61,8 @@
                                     delete
                                 </i></a>
                             </td>
-                            {% endfor %}
                         </tr>
+                        {% endfor %}
                         </tbody>
                     </table>
                     <div class="float-right text-right">

@@ -254,7 +254,7 @@ def labs_list(id, cid):
         out.append((lab.id, lab.title, sc, s))
         s = ''
 
-    return render_template('teacher/labs.html', labs=out, teacher=teacher, course=course)
+    return render_template('teacher/labs.html',group_list=False, labs=out, teacher=teacher, course=course)
 
 
 @app.route('/teacher-<tid>/lab-<lid>/edit', methods=['GET', 'POST'])
@@ -334,6 +334,90 @@ def lab_edit(tid, lid):
         flash('Данные успешно обновлены!', 'success')
 
     return render_template('teacher/lab-item.html', lab=lab, lg=lg, lc=lc, courses=courses, groups=groups, teacher=teacher)
+
+@app.route('/teacher-<id>/group<code>/course-<cid>/labs', methods=['GET', 'POST'])
+def group_labs_list(id, cid, code):
+    group_list = True
+    if not authorized():
+        return redirect(url_for('login'))
+    teacher = User.get(id=id)
+    if teacher.id != current_user.id:
+        return redirect(url_for('login'))
+
+    group = Group.get(code=code)
+    course = Course.get(id=cid)
+
+    labs = select(g.labs for g in Group if g.code == code)
+
+    out = []
+    s = ''
+    sc = ''
+    for lab in labs:
+        out.append((lab.id, lab.title, sc, s))
+        s = ''
+
+    return render_template('teacher/labs.html',group_list=group_list,group=group, labs=out, teacher=teacher, course=course)
+
+
+@app.route('/teacher-<id>/group<code>/course-<cid>/lab<lid>/distribute_variants', methods=['GET', 'POST'])
+def dist_vars(id, code, cid, lid):
+    if not authorized():
+        return redirect(url_for('login'))
+    teacher = User.get(id=id)
+    if teacher.id != current_user.id:
+        return redirect(url_for('login'))
+
+    group = Group.get(code=code)
+    course = Course.get(id=cid)
+    lab = Lab.get(id=lid)
+
+    students = group.students
+    studvars = []
+
+    students = sorted(students, key=lambda stud: stud.surname + stud.name)
+    for student in students:
+        found = False
+        for var in student.variants:
+            if var.lab == lab:
+                studvars.append((student, var))
+                found = True
+        if not found:
+            studvars.append((student, None))
+
+    vars = lab.variants
+    vars = sorted(vars, key=lambda var: var.number)
+
+    form = request.form
+    if request.method == 'POST' and 'distrib' in request.form:
+        variants = form.getlist('variant[]')
+
+        equalvars = set()
+        for i in variants:
+            for v in variants:
+                if i == v:
+                    continue
+                if i == '#' or v == '#':
+                    continue
+                else:
+                    if i.split(',')[1] == v.split(',')[1]:
+                        equalvars.add(i)
+                        equalvars.add(v)
+        if len(equalvars) != 0:
+            flash('Один и тот же вариант выдан нескольким студентам!', 'warning')
+            return render_template('teacher/variant-dist.html', lab=lab, group=group, course=course, students=studvars,
+                                   vars=vars, teacher=teacher)
+
+        for item in variants:
+            if item != '#':
+                item = item.split(',')
+                stud = Student.get(id=item[0])
+                var = Variant.get(number=item[1], lab=lab)
+                if var not in stud.variants:
+                    var.student = stud
+        flash("Данные успешно обновлены!", "success")
+
+
+    return render_template('teacher/variant-dist.html',lab=lab, group=group, course=course, students=studvars, vars=vars, teacher=teacher)
 
 
 @app.route('/teacher-<tid>/course-<cid>/lab-<lid>/variants/', methods=['GET', 'POST'])

@@ -75,6 +75,7 @@ class Teacher(User):
 
 class Attempt(db.Entity):
     id = PrimaryKey(int, auto=True)
+    studentID = Required(int)
     variant = Required(Variant)
     dt = Required(datetime)
     result = Optional(str)

@@ -149,7 +149,7 @@ def course_edit(courseid, teacherid):
 
     return render_template('teacher/course-item.html',teacher=teacher, show=show, course=course, groups=groups, cg=cg)
 
-@app.route('/teacher-<id>/courses/')
+@app.route('/teacher-<id>/courses/', methods=['GET', 'POST'])
 def course_list(id):
     if current_user.id != int(id):
         return redirect(url_for("login"))
@@ -170,8 +170,19 @@ def course_list(id):
         s = ''
 
     out = sorted(out)
-
     return render_template('teacher/courses.html', courses=out, teacher=teacher)
+
+
+@app.route('/teacher-<id>/course_delete/<cid>', methods=['GET', 'POST'])
+def course_delete(id, cid):
+    if current_user.id != int(id):
+        return redirect(url_for("login"))
+    course = Course.get(id=cid)
+    course.delete()
+
+    return redirect(url_for('course_list', id=id))
+
+
 
 @app.route('/teacher-<id>/create_lab/', methods=['GET', 'POST'])
 def create_lab(id):
@@ -183,8 +194,12 @@ def create_lab(id):
 
     show = isinstance(current_user, Admin)
 
-    allcourses = select(c.title for c in Course)[:]
-    allgroups = select(group.code for group in Group)[:]
+    allcourses = select(c.title for c in Course if c.teacher == teacher)[:]
+    allgroups = []
+    for course in allcourses:
+        for group in Course.get(title=course).groups:
+            if group.code not in allgroups:
+                allgroups.append(group.code)
 
     form = request.form
     if request.method == "POST" and 'create' in request.form:
@@ -211,10 +226,12 @@ def create_lab(id):
         for course in courses:
             c = Course.get(title=course)
             l.courses.add(c)
+            for group in groups:
+                g = Group.get(code=group)
+                if g not in c.groups:
+                    flash('Группа ' + g.code + ' не записана на предмет ' + c.title + '! Группа не будет привязана к данной лабораторной работе.', "warning")
+                l.groups.add(g)
 
-        for group in groups:
-            g = Group.get(code=group)
-            l.groups.add(g)
 
         flash("Лабораторная работа " + title +  " создана!", "success")
 
@@ -238,7 +255,8 @@ def labs_list(id, cid):
     sc = ''
     for lab in labs:
         for group in lab.groups:
-            s += group.code + ","
+            if group in course.groups:
+                s += group.code + ","
         s = sorted(s.split(','))
         for i in s:
             if i == '':
@@ -253,6 +271,7 @@ def labs_list(id, cid):
         sc = ','.join(sc)
         out.append((lab.id, lab.title, sc, s))
         s = ''
+        sc = ''
 
     return render_template('teacher/labs.html',group_list=False, labs=out, teacher=teacher, course=course)
 
@@ -335,6 +354,20 @@ def lab_edit(tid, lid):
 
     return render_template('teacher/lab-item.html', lab=lab, lg=lg, lc=lc, courses=courses, groups=groups, teacher=teacher)
 
+
+@app.route('/teacher-<id>/course-<cid>/lab-<lid>/delete', methods=['GET', 'POST'])
+def lab_delete(id, cid, lid):
+    if current_user.id != int(id):
+        return redirect(url_for("login"))
+    lab = Lab.get(id=lid)
+
+    try:
+        lab.delete()
+    except AttributeError:
+        flash('Ошибка удаления!', 'danger')
+
+    return redirect(url_for('labs_list', id=id, cid=cid))
+
 @app.route('/teacher-<id>/group<code>/course-<cid>/labs', methods=['GET', 'POST'])
 def group_labs_list(id, cid, code):
     group_list = True
@@ -357,6 +390,22 @@ def group_labs_list(id, cid, code):
         s = ''
 
     return render_template('teacher/labs.html',group_list=group_list,group=group, labs=out, teacher=teacher, course=course)
+
+
+@app.route('/teacher-<id>/group<code>/course-<cid>/lab-<lid>/delete', methods=['GET', 'POST'])
+def group_lab_delete(id, code, cid, lid):
+    if current_user.id != int(id):
+        return redirect(url_for("login"))
+
+    lab = Lab.get(id=lid)
+    group = Group.get(code=code)
+    for student in group.students:
+        for var in lab.variants:
+            if var in student.variants:
+                student.variants.remove(var)
+    group.labs.remove(lab)
+
+    return redirect(url_for('group_labs_list', id=id, code=code, cid=cid))
 
 
 @app.route('/teacher-<id>/group<code>/course-<cid>/lab<lid>/distribute_variants', methods=['GET', 'POST'])
@@ -460,6 +509,13 @@ def create_variant(tid, cid, lid):
         description = form.get('descriptionInput')
         studentid = form.get('student')
 
+        for sym in number:
+            if not sym.isdigit():
+                flash('Поле номера варианта содержит символы! Номер может быть только числом!', 'warning')
+                return render_template('teacher/variant-creation.html', lab=lab, data=data, teacher=teacher)
+        if Variant.get(number=number, lab=lab):
+            flash('Вариант с введённым номером уже существует!', 'warning')
+            return render_template('teacher/variant-creation.html', lab=lab, data=data, teacher=teacher)
         if number == '':
             flash('Не задан номер варианта!', 'warning')
             return render_template('teacher/variant-creation.html', lab=lab, data=data, teacher=teacher)
@@ -522,6 +578,17 @@ def variant_edit(tid, cid, lid, vid):
 
     return render_template('teacher/variant-item.html', teacher=teacher, lab=lab, var=var)
 
+
+@app.route('/teacher-<tid>/course-<cid>/lab-<lid>/variant-<vid>/delete', methods=['GET', 'POST'])
+def variant_delete(tid, cid, lid, vid):
+    if current_user.id != int(tid):
+        return redirect(url_for("login"))
+    var = Variant.get(id=vid)
+    var.delete()
+
+    return redirect(url_for('variant_list', tid=tid, cid=cid, lid=lid))
+
+
 @app.route('/teacher-<tid>/course-<cid>/lab-<lid>/variant-<vid>/tests', methods=['GET', 'POST'])
 def test_list(tid, cid, lid, vid,):
     if not authorized():
@@ -533,7 +600,7 @@ def test_list(tid, cid, lid, vid,):
     lab = Lab.get(id=lid)
     var = Variant.get(id=vid)
 
-    return render_template('teacher/tests.html', teacher=teacher, lab=lab, var=var)
+    return render_template('teacher/tests.html',cid=cid, teacher=teacher, lab=lab, var=var)
 
 
 @app.route('/teacher-<tid>/lab-<lid>/variant-<vid>/create_test', methods=['GET', 'POST'])
@@ -596,6 +663,16 @@ def test_edit(tid, lid, vid, tsid):
         flash('Данные теста успешно обновлены!', 'success')
 
     return render_template('teacher/test-item.html', teacher=teacher, lab=lab, var=var, test=test)
+
+
+@app.route('/teacher-<tid>/course-<cid>/lab-<lid>/variant-<vid>/test-<tsid>/delete', methods=['GET', 'POST'])
+def test_delete(tid, cid, lid, vid, tsid):
+    if current_user.id != int(tid):
+        return redirect(url_for("login"))
+    test = Test.get(id=tsid)
+    test.delete()
+
+    return redirect(url_for('test_list', tid=tid, cid=cid, lid=lid, vid=vid))
 
 
 @app.route('/group_create/', methods=['GET', 'POST'])

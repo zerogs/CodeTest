@@ -1,8 +1,6 @@
 <html>
 <head>
-    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
-            integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
-            crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
             integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
             crossorigin="anonymous"></script>
@@ -89,7 +87,7 @@
                                 <a href={{ url_for('course_edit', courseid=course[0], teacherid=teacher.id ) }}><i class="material-icons">
                                     create
                                 </i></a>
-                                <a href="#"><i class="material-icons">
+                                <a href="/" onClick="setId({{ course[0] }}, '{{ course[1] }}'); return false" data-toggle="modal" data-target="#deleteModal"><i class="material-icons">
                                     delete
                                 </i></a>
                             </td>
@@ -105,13 +103,45 @@
                 </div>
             </div>
         </div>
+        <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+          <div class="modal-dialog" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Удаление записи</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="modal-body">
+                Вы действительно хотите удалить запись?
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="sendRequest({{ teacher.id }}); return false;">Подтвердить</button>
+              </div>
+            </div>
+          </div>
+        </div>
     </div>
-
     <!-- end content -->
 
     <!-- footer -->
 
     <!-- end footer -->
 </div>
+<script type="application/javascript">
+    var current_id = 0;
+    function setId(id, title)
+    {
+        current_id = id;
+        $(".modal-body").html('Вы действительно хотите удалить предмет ' + title + '?');
+    }
+    function sendRequest(tid) {
+        $.get("/teacher-" + tid + "/course_delete/" + current_id, () => {
+           $("#deleteModal").modal('hide');
+        window.location.reload();
+        });
+    }
+</script>
 </body>
 </html>

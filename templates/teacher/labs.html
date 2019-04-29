@@ -1,8 +1,6 @@
 <html>
 <head>
-    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
-            integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
-            crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
             integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
             crossorigin="anonymous"></script>
@@ -37,7 +35,17 @@
                     <h2 class="mt-4">
                         Лабораторные работы по предмету {{ course.title }} {% if group_list %}группы {{ group.code }} {% endif %}
                         <button type="submit" onClick="window.location.replace('{{ url_for("create_lab", id=teacher.id) }}')" class="btn btn-primary">Создать</button></h2>
-
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                      <!-- Categories: success (green), info (blue), warning (yellow), danger (red) -->
+                      {% if messages %}
+                        {% for category, message in messages %}
+                          <div class="alert alert-{{ category }} alert-dismissible" role="alert">
+                          <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                          <!-- <strong>Title</strong> --> {{ message }}
+                          </div>
+                        {% endfor %}
+                      {% endif %}
+                    {% endwith %}
                     <table class="table text-center mt-4">
                         <thead class="thead-dark">
                         <tr>
@@ -56,8 +64,8 @@
                         </tr>
                         </thead>
                         <tbody>
-                        <tr>
-                            {% for lab in labs %}
+                        {% for lab in labs %}
+                            <tr>
                                 {% if not group_list %}
                                 <th scope="row">{{ lab[0] }}</th>
                                 <td>{{ lab[1] }}</td>
@@ -68,8 +76,8 @@
                                     <a href="{{ url_for('lab_edit', tid=teacher.id, lid=lab[0]) }}"><i class="material-icons">
                                         create
                                     </i></a>
-                                    <a href="#"><i class="material-icons">
-                                        delete
+                                    <a href="/" onClick="setId({{ lab[0] }}, '{{ lab[1] }}'); return false" data-toggle="modal" data-target="#deleteModal"><i class="material-icons">
+                                    delete
                                     </i></a>
                                 </td>
                                 {% else %}
@@ -81,13 +89,13 @@
                                     <a href="{{ url_for('lab_edit', tid=teacher.id, lid=lab[0]) }}"><i class="material-icons">
                                         create
                                     </i></a>
-                                    <a href="#"><i class="material-icons">
-                                        delete
+                                    <a href="/" onClick="setId({{ lab[0] }}, '{{ lab[1] }}'); return false" data-toggle="modal" data-target="#deleteModal"><i class="material-icons">
+                                    delete
                                     </i></a>
                                 </td>
                                 {% endif %}
-                            {% endfor %}
-                        </tr>
+                            </tr>
+                        {% endfor %}
                         </tbody>
                     </table>
                     <div class="float-right text-right">
@@ -98,6 +106,31 @@
                 </div>
             </div>
         </div>
+        <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+          <div class="modal-dialog" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Удаление записи</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="modal-body">
+                Вы действительно хотите удалить запись?
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary"
+                        {% if not group_list %}
+                            onclick="sendRequest({{ teacher.id }}, {{ course.id }}); return false;"
+                        {% else %}
+                            onclick="sendRequestGroup({{ teacher.id }}, {{ group.code }}, {{ course.id }}); return false;"
+                        {% endif %}
+                            >Подтвердить</button>
+              </div>
+            </div>
+          </div>
+        </div>
     </div>
 
     <!-- end content -->
@@ -106,5 +139,29 @@
 
     <!-- end footer -->
 </div>
+<script type="application/javascript">
+    var current_id = 0;
+    function setId(id, title)
+    {
+        current_id = id;
+        {% if not group_list %}
+        $(".modal-body").html('Вы действительно хотите удалить лабораторную работу ' + title + '?');
+        {% else %}
+        $(".modal-body").html('Вы действительно хотите удалить лабораторную работу ' + title + 'для группы ' + {{ group.code }} + '?');
+        {% endif %}
+    }
+    function sendRequest(tid, cid) {
+        $.get("/teacher-" + tid + "/course-"+ cid +" /lab-" + current_id + "/delete", () => {
+           $("#deleteModal").modal('hide');
+        window.location.reload();
+        });
+    }
+    function sendRequestGroup(tid, code, cid) {
+        $.get("/teacher-" + tid + "/group" + code + "/course-"+ cid +" /lab-" + current_id + "/delete", () => {
+           $("#deleteModal").modal('hide');
+        window.location.reload();
+        });
+    }
+</script>
 </body>
 </html>

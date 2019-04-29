@@ -1,0 +1,109 @@
+<html>
+<head>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+            integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+            crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+            integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+            crossorigin="anonymous"></script>
+    <link rel="stylesheet" href={{ url_for('static', filename="css/bootstrap.min.css")}}>
+    <link rel="stylesheet" href={{ url_for('static', filename="css/styles.css")}}>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons"
+          rel="stylesheet">
+    <script src={{ url_for('static', filename="js/bootstrap.min.js")}}></script>
+</head>
+<body>
+<div class="d-flex" id="wrapper">
+    <!-- sidebar -->
+    <div class="bg-light border-right" id="sidebar-wrapper">
+        <div class="sidebar-heading">Code Test</div>
+        <div class="list-group list-group-flush">
+            <a href="{{ url_for("course_list", id=teacher.id) }}" class="list-group-item list-group-item-action bg-light">Предметы</a>
+            <a href="{{ url_for("group_list", tid=teacher.id)}}" class="list-group-item list-group-item-action bg-light">Группы</a>
+            <a href="#" class="list-group-item list-group-item-action bg-light">Overview</a>
+            <a href="#" class="list-group-item list-group-item-action bg-light">Events</a>
+            <a href="#" class="list-group-item list-group-item-action bg-light">Profile</a>
+            <a href="#" class="list-group-item list-group-item-action bg-light">Status</a>
+        </div>
+    </div>
+    <!-- end sidebar -->
+
+    <!-- content -->
+
+    <div id="page-content-wrapper">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-6">
+                    <h3 class="mt-4">Распределение вариантов лабораторной работы {{ lab.title }} группы {{ group.code }} по курсу {{ course.title }}</h3>
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                      <!-- Categories: success (green), info (blue), warning (yellow), danger (red) -->
+                      {% if messages %}
+                        {% for category, message in messages %}
+                          <div class="alert alert-{{ category }} alert-dismissible" role="alert">
+                          <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                          <!-- <strong>Title</strong> --> {{ message }}
+                          </div>
+                        {% endfor %}
+                      {% endif %}
+                    {% endwith %}
+                    <form action="" method="post" name="varsDist">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <table class="table text-center mt-4">
+                            <thead class="thead-dark">
+                            <tr>
+                                <th scope="col">ID</th>
+                                <th scope="col">Фамилия</th>
+                                <th scope="col">Имя</th>
+                                <th scope="col">Отчество</th>
+                                <th scope="col">Вариант</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for student in students %}
+                            <tr>
+                                <th scope="row">{{ student[0].id }}</th>
+                                <td>{{ student[0].surname }}</td>
+                                <td>{{ student[0].name }}</td>
+                                <td>{{ student[0].patronymic }}</td>
+                                <td>
+                                <div id="variant_selector" class="form-group">
+                                    <div class="variant-selector d-flex">
+                                        <select class="select-variant" data-index="0" name="variant[]">
+                                            {% if student[1] %}
+                                                <option selected value="{{ student[0].id }},{{ student[1].number }}">{{ student[1].number }}</option>
+                                            {% else %}
+                                                <option selected>#</option>
+                                            {% endif %}
+                                            {% for var in vars%}
+                                                {% if var not in student[0].variants %}
+                                                    <option value="{{ student[0].id }},{{ var.number }}"> {{ var.number }}</option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                        <button type="submit" name="distrib" class="btn btn-primary">Распределить</button>
+                    </form>
+                    <div class="float-right text-right">
+                        <span class="d-block mb-2">Страница 1 из 1</span>
+                        <button type="button" class="btn btn-primary" disabled>Предыдущая</button>
+                        <button type="button" class="btn btn-primary">Следующая</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- end content -->
+
+    <!-- footer -->
+
+    <!-- end footer -->
+</div>
+</body>
+</html>

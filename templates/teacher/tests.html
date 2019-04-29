@@ -1,8 +1,6 @@
 <html>
 <head>
-    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
-            integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
-            crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
             integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
             crossorigin="anonymous"></script>
@@ -46,8 +44,8 @@
                         </tr>
                         </thead>
                         <tbody>
+                        {% for test in var.tests %}
                         <tr>
-                            {% for test in var.tests %}
                             <th scope="row">{{ test.id }}</th>
                             <td>{{ test.input }}</td>
                             <td>{{ test.output }}</td>
@@ -56,26 +54,12 @@
                                 <a href="{{ url_for('test_edit', tid=teacher.id, lid=lab.id, vid=var.id, tsid=test.id) }}"><i class="material-icons">
                                     create
                                 </i></a>
-                                <a href="#"><i class="material-icons">
-                                    delete
-                                </i></a>
-                            </td>
-                            {% endfor %}
-                        </tr>
-                        <tr>
-                            <th scope="row">3</th>
-                            <td>Larry</td>
-                            <td>the Bird</td>
-                            <td><a href="#">Решения</a></td>
-                            <td>
-                                <a href="#"><i class="material-icons">
-                                    create
-                                </i></a>
-                                <a href="#"><i class="material-icons">
+                                <a href="/" onClick="setId({{ test.id }}); return false" data-toggle="modal" data-target="#deleteModal"><i class="material-icons">
                                     delete
                                 </i></a>
                             </td>
                         </tr>
+                        {% endfor %}
                         </tbody>
                     </table>
                     <div class="float-right text-right">
@@ -86,6 +70,25 @@
                 </div>
             </div>
         </div>
+        <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+          <div class="modal-dialog" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Удаление записи</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="modal-body">
+                Вы действительно хотите удалить запись?
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="sendRequest({{ teacher.id }}, {{ cid }}, {{ lab.id }}, {{ var.id }}); return false;">Подтвердить</button>
+              </div>
+            </div>
+          </div>
+        </div>
     </div>
 
     <!-- end content -->
@@ -94,5 +97,19 @@
 
     <!-- end footer -->
 </div>
+<script type="application/javascript">
+    var current_id = 0;
+    function setId(id)
+    {
+        current_id = id;
+        $(".modal-body").html('Вы действительно хотите удалить тест ID= ' + current_id + '?');
+    }
+    function sendRequest(tid, cid, lid, vid) {
+        $.get("/teacher-" + tid + "/course-" + cid +"/lab-" + lid +"/variant-" + vid + "/test-" + current_id + "/delete", () => {
+           $("#deleteModal").modal('hide');
+        window.location.reload();
+        });
+    }
+</script>
 </body>
 </html>

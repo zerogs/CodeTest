@@ -15,6 +15,8 @@ config = dict(
     UPLOADED_DATA_URL='http://localhost:5000/files/group_lists/',
 
     UPLOADED_SCRIPTS_DEST='/files/scripts/',
-    UPLOADED_SCRIPTS_URL='http://localhost:5000/files/scripts/'
+    UPLOADED_SCRIPTS_URL='http://localhost:5000/files/scripts/',
+
+    UPLOAD_FOLDER='files/scripts/'
 
 )

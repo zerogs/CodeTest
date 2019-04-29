@@ -14,10 +14,9 @@ login_manager = LoginManager(app)
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 patch_request_class(app)
+ALLOWED_EXTENSIONS = set(['py', 'cpp', 'c'])
 group_lists = UploadSet("data", DATA)
-programs = UploadSet("programs", SCRIPTS)
 configure_uploads(app, group_lists)
-configure_uploads(app, programs)
 
 @login_manager.user_loader
 def load_user(user_id):

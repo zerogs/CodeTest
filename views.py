@@ -1,11 +1,15 @@
-from app import app, group_lists, programs
+from app import app, group_lists, ALLOWED_EXTENSIONS
 from flask import render_template, request, redirect, url_for, flash
 from flask_login import current_user, login_user, logout_user
-from models import db, Admin,User, Teacher, Student, Variant, Group, Course, Lab, Test, generate_password_hash
+from models import db, Admin,User, Teacher, Student, Variant, Group, Attempt, Course, Lab, Test, generate_password_hash
 from pony.orm import select
+from werkzeug.utils import secure_filename
 from datetime import datetime
 from secrets import token_hex
 from csvhandler import csv_reader
+from flask import send_from_directory
+import os
+
 
 
 def authorized():
@@ -57,6 +61,9 @@ def update_student_profile(id):
             student.password = generate_password_hash(form.get("inputPassword"))
             student.activated = True
             flash("Данные обновлены успешно!", "success")
+
+        return redirect(url_for('student_courses'))
+
     return render_template('student/registration-student.html', student=student)
 
 
@@ -705,7 +712,7 @@ def test_delete(tid, cid, lid, vid, tsid):
 
 @app.route('/group_create/', methods=['GET', 'POST'])
 def group_create():
-    if not authorized() and not isinstance(current_user, Admin):
+    if not authorized():
         return redirect(url_for('login'))
 
     form = request.form
@@ -754,7 +761,7 @@ def group_create():
 
 @app.route('/teacher-<tid>/groups', methods=['GET', 'POST'] )
 def group_list(tid):
-    if not authorized() and not isinstance(current_user, Teacher):
+    if not authorized():
         return redirect(url_for('login'))
     teacher = Teacher.get(id=tid)
     if teacher.id != current_user.id:
@@ -856,7 +863,7 @@ def login():
         if Teacher.get(id=current_user.id):
             return redirect(url_for('course_list', id=current_user.id))
         if Student.get(id=current_user.id):
-            return redirect(url_for('student'))
+            return redirect(url_for('student_courses'))
         if current_user.is_admin:
             return redirect(url_for('admin'))
 
@@ -874,7 +881,7 @@ def login():
                 if Teacher.get(id=current_user.id):
                     return redirect(url_for('course_list', id=current_user.id))
                 if Student.get(id=current_user.id):
-                    return redirect(url_for('student'))
+                    return redirect(url_for('student_courses'))
                 if current_user.is_admin:
                     return redirect(url_for('admin'))
             else:
@@ -918,7 +925,7 @@ def admin():
 
 @app.route('/admin/create_teacher', methods=['GET', 'POST'])
 def create_teacher():
-    if not authorized() and not isinstance(current_user, Admin):
+    if not authorized():
         return redirect(url_for('login'))
 
     form = request.form
@@ -953,6 +960,77 @@ def create_teacher():
     return render_template('admin/create_teacher.html',reg_code=reg_code)
 
 
-@app.route('/student')
-def student():
-    return render_template('student/index.html')
+@app.route('/student/courses', methods=['GET', 'POST'])
+def student_courses():
+    if not authorized():
+        return redirect(url_for('login'))
+    student = Student.get(id=current_user.id)
+    if not isinstance(student, Student):
+        return redirect(url_for('login'))
+
+    courses = student.group.courses
+
+    out = []
+    for course in courses:
+        teacher = course.teacher
+        out.append((course.id, course.title, teacher.surname + " " + teacher.name + " " + teacher.patronymic))
+    out = sorted(out, key=lambda c: c[0])
+
+    return render_template('student/courses.html', courses=out, student=student)
+
+
+@app.route('/student/course-<cid>/labs', methods=['GET', 'POST'])
+def student_course_labs(cid):
+    if not authorized():
+        return redirect(url_for('login'))
+    student = Student.get(id=current_user.id)
+    if not isinstance(student, Student):
+        return redirect(url_for('login'))
+
+    course = Course.get(id=cid)
+    group = current_user.group
+
+    labs = select(l for l in Lab if course in l.courses and group in l.groups)
+
+    return render_template('student/labs.html', labs=labs, course=course)
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+
+@app.route('/student/lab-<lid>/review', methods=['GET', 'POST'])
+def student_lab_page(lid):
+    if not authorized():
+        return redirect(url_for('login'))
+    student = Student.get(id=current_user.id)
+    if not isinstance(student, Student):
+        return redirect(url_for('login'))
+    lab = Lab.get(id=lid)
+    var = Variant.get(student=student, lab=lab)
+    attempts = []
+    for attempt in var.attempts:
+        if attempt.studentID == student.id:
+            attempts.append(attempt)
+
+    if request.method == 'POST':
+        file = request.files['programFile']
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], student.group.code + '/' + str(student.id) + '/' + str(lab.id) + "/" + filename))
+            a = Attempt(
+                studentID=student.id,
+                variant=var,
+                dt=datetime.now(),
+                source=filename,
+                result="Не проверено"
+            )
+
+            return redirect(url_for('uploaded_file',
+                                    filename=filename))
+
+    return render_template('student/variant_info.html', var=var, lab=lab, attempts=attempts)
+
+
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)

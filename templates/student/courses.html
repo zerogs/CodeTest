@@ -1,8 +1,6 @@
 <html>
 <head>
-    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
-            integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
-            crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
             integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
             crossorigin="anonymous"></script>
@@ -18,53 +16,38 @@
     <div class="bg-light border-right" id="sidebar-wrapper">
         <div class="sidebar-heading">Code Test</div>
         <div class="list-group list-group-flush">
-            <a href="{{ url_for("course_list", id=teacher.id) }}" class="list-group-item list-group-item-action bg-light">Предметы</a>
-            <a href="{{ url_for("group_list", tid=teacher.id)}}" class="list-group-item list-group-item-action bg-light">Группы</a>
             <a href="#" class="list-group-item list-group-item-action bg-light">Overview</a>
             <a href="#" class="list-group-item list-group-item-action bg-light">Events</a>
             <a href="#" class="list-group-item list-group-item-action bg-light">Profile</a>
-            <a href="{{ url_for("logout")}}" class="list-group-item list-group-item-action bg-light">Выйти</a>
+            <a href="#" class="list-group-item list-group-item-action bg-light">Status</a>
         </div>
     </div>
     <!-- end sidebar -->
 
     <!-- content -->
+
     <div id="page-content-wrapper">
         <div class="container-fluid">
             <div class="row">
                 <div class="col-6">
-                    <h1 class="mt-4">Группы</h1>
+                    <h2  class="mt-4">Список предметов</h2>
 
                     <table class="table text-center mt-4">
                         <thead class="thead-dark">
                         <tr>
                             <th scope="col">ID</th>
-                            <th scope="col">Номер группы</th>
-                            <th scope="col">Предметы</th>
-                            <th scope="col"></th>
+                            <th scope="col">Название</th>
+                            <th scope="col">Преподаватель</th>
                             <th scope="col"></th>
                         </tr>
                         </thead>
                         <tbody>
-                        {% for group in groups %}
+                        {% for course in courses %}
                         <tr>
-                            <th scope="row">{{ group[0] }}</th>
-                            <td>{{ group[1] }}</td>
-                            <td>
-                                {% for course in group[2] %}
-                                    <a href="{{ url_for('group_labs_list',id=teacher.id, cid=course[1], code=group[1])}}">{{ course[0] }}</a>
-                                {% endfor %}
-                            </td>
-
-                            <td><a href="{{ url_for('student_list', gid=group[0]) }}">Студенты</a></td>
-                            <td>
-                                <a href="#"><i class="material-icons">
-                                    create
-                                </i></a>
-                                <a href="#"><i class="material-icons">
-                                    delete
-                                </i></a>
-                            </td>
+                            <th scope="row">{{ course[0] }}</th>
+                            <td>{{ course[1] }}</td>
+                            <td>{{ course[2] }}</td>
+                            <td><a href={{ url_for("student_course_labs", cid=course[0]) }}>Лаб. работы</a></td>
                         </tr>
                         {% endfor %}
                         </tbody>
@@ -78,7 +61,6 @@
             </div>
         </div>
     </div>
-
     <!-- end content -->
 
     <!-- footer -->

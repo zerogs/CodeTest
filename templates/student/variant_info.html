@@ -18,8 +18,7 @@
     <div class="bg-light border-right" id="sidebar-wrapper">
         <div class="sidebar-heading">Code Test</div>
         <div class="list-group list-group-flush">
-            <a href="{{ url_for("course_list", id=teacher.id) }}" class="list-group-item list-group-item-action bg-light">Предметы</a>
-            <a href="{{ url_for("group_list", tid=teacher.id)}}" class="list-group-item list-group-item-action bg-light">Группы</a>
+            <a href="{{ url_for("student_courses") }}" class="list-group-item list-group-item-action bg-light">Предметы</a>
             <a href="#" class="list-group-item list-group-item-action bg-light">Overview</a>
             <a href="#" class="list-group-item list-group-item-action bg-light">Events</a>
             <a href="#" class="list-group-item list-group-item-action bg-light">Profile</a>
@@ -34,28 +33,39 @@
         <div class="container-fluid">
             <div class="row">
                 <div class="col-6">
-                    <h1 class="mt-4">Добавить существующую лабораторную работу</h1>
-                    <form method="post" id="labAdd">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                            <label>Название</label>
-                        <div id="lab_selectors" class="form-group">
-                            <div class="lab-selector d-flex">
-                                <select id="labInput" class="select-lab custom-select mb-2" data-index="0" name="lab[]">
-                                    <option selected>Лабораторная работа</option>
-                                    {% for l in labs %}
-                                    <option value="{{ l.title }}"> {{ l.title }}</option>
-                                    {% endfor %}
-                                </select>
-                                <i class="material-icons mt-2 ml-2 delete-lab" style="color: red; cursor: pointer;">
-                                    clear
-                                </i>
-                            </div>
+                    <h1 class="mt-4 mb-3">Вариант № {{ var.number }} лабораторной работы {{ lab.title }}</h1>
+                    <h3>{{ var.title }}</h3>
+                    <h4>Описание:</h4>
+                    <p>{{ var.description }}</p>
+                    <form method="post" enctype=multipart/form-data>
+                        <div class="form-group">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         </div>
-                        <button type="submit" name="add" class="btn btn-primary">Добавить</button>
-                    </form>
-                </div>
-                <!-- <button type="submit" class="btn btn-danger">Удалить</button> -->
+                        <p>Программа должна считывать аргументы командной строки как входные данные, результаты возвращать в стандартный вывод.</p>
+                        <div class="custom-file mb-2">
+                            <label>Загрузить программу :</label>
+                            <input type="file" name="programFile" class="custom-file-input" id="customFile">
+                            <label class="custom-file-label" for="customFile">Выберите файл</label>
+                        </div>
 
+                        <button type="submit" name="downloadProgram" class="btn btn-primary">Загрузить</button>
+                    </form>
+                    <table class="table text-center mt-4">
+                        <thead class="thead-dark">
+                        <tr>
+                            <th scope="col">Время</th>
+                            <th scope="col">Результат</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for a in attempts %}
+                            <tr>
+                                <th scope="row">{{ a.dt }}</th>
+                                <td>{{ a.result }}</td>
+                                </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
                     {% with messages = get_flashed_messages(with_categories=true) %}
                       <!-- Categories: success (green), info (blue), warning (yellow), danger (red) -->
                       {% if messages %}
@@ -70,6 +80,7 @@
                 </div>
             </div>
         </div>
+    </div>
 
     <!-- end content -->
 
@@ -77,20 +88,5 @@
 
     <!-- end footer -->
 </div>
-<script type="application/javascript">
-        $("body").on("change", "select.select-lab", (el) => {
-            let element = $(el.target);
-            let index = parseInt(element.attr("data-index")) + 1;
-            if ($("select.lab-selector[data-index=" + index + "]").length === 0) {
-                let new_el = element.parent().clone();
-                new_el.find("select").attr("data-index", index);
-                $("#lab_selectors").append(new_el);
-            }
-        });
-        $("body").on("click", "i.delete-lab", (el) => {
-            let element = $(el.target);
-            element.parent("div.lab-selector")[0].remove();
-        });
-</script>
 </body>
 </html>

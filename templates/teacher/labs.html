@@ -35,6 +35,7 @@
                     <h2 class="mt-4">
                         Лабораторные работы по предмету {{ course.title }} {% if group_list %}группы {{ group.code }} {% endif %}
                         <button type="submit" onClick="window.location.replace('{{ url_for("create_lab", id=teacher.id) }}')" class="btn btn-primary">Создать</button></h2>
+                        <button type="submit" onClick="window.location.replace('{{ url_for("add_existing_lab", id=teacher.id, cid=course.id) }}')" class="btn btn-primary">Добавить существующие</button></h2>
                     {% with messages = get_flashed_messages(with_categories=true) %}
                       <!-- Categories: success (green), info (blue), warning (yellow), danger (red) -->
                       {% if messages %}

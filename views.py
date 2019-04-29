@@ -368,6 +368,34 @@ def lab_delete(id, cid, lid):
 
     return redirect(url_for('labs_list', id=id, cid=cid))
 
+
+@app.route('/teacher-<id>/course-<cid>/add_lab', methods=['GET', 'POST'])
+def add_existing_lab(id, cid):
+    if not authorized():
+        return redirect(url_for('login'))
+    teacher = User.get(id=id)
+    if teacher.id != current_user.id:
+        return redirect(url_for('login'))
+
+    course = Course.get(id=cid)
+
+    labs = select(l for l in Lab if l.teacher == teacher)
+
+    form = request.form
+    if request.method == "POST" and 'add' in request.form:
+        titles = form.getlist('lab[]')
+        if 'Лабораторная работа' in titles:
+            titles.remove('Лабораторная работа')
+
+        for title in titles:
+            l = Lab.get(title=title)
+            if l not in course.labs:
+                course.labs.add(l)
+
+        return redirect(url_for('labs_list', id=teacher.id, cid=course.id))
+
+    return render_template('teacher/lab-add-to-course.html', labs=labs, teacher=teacher)
+
 @app.route('/teacher-<id>/group<code>/course-<cid>/labs', methods=['GET', 'POST'])
 def group_labs_list(id, cid, code):
     group_list = True

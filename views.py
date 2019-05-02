@@ -71,8 +71,8 @@ def update_student_profile(id):
 def create_course(tid):
     if not authorized():
         return redirect(url_for('login'))
-    teacher = User.get(id=tid)
-    if teacher.id != current_user.id:
+    teacher = Teacher.get(id=id)
+    if teacher.id != current_user.id and not Admin.get(id=current_user.id):
         return redirect(url_for('login'))
 
     show = isinstance(current_user, Admin)
@@ -114,12 +114,14 @@ def create_course(tid):
 def course_edit(courseid, teacherid):
     if not authorized():
         return redirect(url_for('login'))
-    teacher = User.get(id=teacherid)
-    if teacher.id != current_user.id:
+    teacher = Teacher.get(id=teacherid)
+    if teacher.id != current_user.id and not Admin.get(id=current_user.id):
         return redirect(url_for('login'))
 
-    show = isinstance(current_user, Admin)
+    show = isinstance(Admin.get(id=current_user.id), Admin)
     course = Course.get(id=courseid, teacher=Teacher.get(id=teacherid))
+    teachers = select((t.id, t.surname + ' ' + t.name[0] + '. ' + t.patronymic[0] + '.') for t in Teacher)[:]
+    change_course_teacher = False
     cg = course.groups
     groups = []
     query = select(group.code for group in Group)[:]
@@ -130,31 +132,65 @@ def course_edit(courseid, teacherid):
     if request.method == 'POST' and 'update' in request.form:
         title = form.get('nameInput')
 
-        if title == '':
-            title = course.title
+        if show:
+            tid = form.get('teacherInput')
 
-        group_codes = request.form.getlist('group[]')
-        try:
-            group_codes.remove('Группа')
-        except ValueError:
-            pass
+            if tid != 'Преподаватель':
+                new_teacher = Teacher.get(id=tid)
+                change_course_teacher = True
 
-        course.title = title
+        if change_course_teacher:
+            if title == '':
+                title = course.title
 
-        for g in cg:
-            if g.code not in group_codes:
-                for lab in course.labs:
-                    lab.groups.remove(g)
-                course.groups.remove(g)
+            group_codes = request.form.getlist('group[]')
+            try:
+                group_codes.remove('Группа')
+            except ValueError:
+                pass
 
-        for code in group_codes:
-            g = Group.get(code=code)
-            if g not in cg:
-                course.groups.add(g)
+            labs = select(l for l in Lab if  Course.get(id=courseid) in l.courses)[:]
+            groups = select(g for g in Group if Course.get(id=courseid) in g.courses)[:]
+
+            Course.get(id=courseid).delete()
+
+            c = Course(
+                title=title,
+                teacher=new_teacher
+            )
+
+            for lab in labs:
+                c.labs.add(lab)
+            for group in groups:
+                c.groups.add(group)
+
+        else:
+            if title == '':
+                title = course.title
+
+            group_codes = request.form.getlist('group[]')
+            try:
+                group_codes.remove('Группа')
+            except ValueError:
+                pass
+
+            course.title = title
+
+            for g in cg:
+                if g.code not in group_codes:
+                    for lab in course.labs:
+                        lab.groups.remove(g)
+                    course.groups.remove(g)
+
+            for code in group_codes:
+                g = Group.get(code=code)
+                if g not in cg:
+                    course.groups.add(g)
 
         return redirect(url_for('course_list', id=teacherid))
 
-    return render_template('teacher/course-item.html',teacher=teacher, show=show, course=course, groups=groups, cg=cg)
+    return render_template('teacher/course-item.html',teacher=teacher, show=show, course=course, groups=groups, cg=cg,
+                           teachers=teachers)
 
 @app.route('/teacher-<id>/courses/', methods=['GET', 'POST'])
 def course_list(id):
@@ -182,8 +218,9 @@ def course_list(id):
 
 @app.route('/teacher-<id>/course_delete/<cid>', methods=['GET', 'POST'])
 def course_delete(id, cid):
-    if current_user.id != int(id):
-        return redirect(url_for("login"))
+    if not Admin.get(id=current_user.id):
+        if current_user.id != int(id):
+            return redirect(url_for("login"))
     course = Course.get(id=cid)
     course.delete()
 
@@ -195,13 +232,14 @@ def course_delete(id, cid):
 def create_lab(id):
     if not authorized():
         return redirect(url_for('login'))
-    teacher = User.get(id=id)
-    if teacher.id != current_user.id:
+    teacher = Teacher.get(id=id)
+    if teacher.id != current_user.id and not Admin.get(id=current_user.id):
         return redirect(url_for('login'))
 
-    show = isinstance(current_user, Admin)
+    show = isinstance(Admin.get(id=current_user.id), Admin)
 
     allcourses = select(c.title for c in Course if c.teacher == teacher)[:]
+    teacherFio = select(t.surname + " " + t.name[0] + '.' + t.patronymic[0] + '.' for t in Teacher if t.id == id)[:]
     allgroups = []
     for course in allcourses:
         for group in Course.get(title=course).groups:
@@ -239,18 +277,18 @@ def create_lab(id):
                     flash('Группа ' + g.code + ' не записана на предмет ' + c.title + '! Группа не будет привязана к данной лабораторной работе.', "warning")
                 l.groups.add(g)
 
-
         flash("Лабораторная работа " + title +  " создана!", "success")
 
-    return render_template('teacher/lab-creation.html',teacher=teacher, show=show, courses=allcourses, groups=allgroups)
+    return render_template('teacher/lab-creation.html',teacher=teacher, show=show, courses=allcourses, groups=allgroups,
+                           teacherFio=teacherFio)
 
 
 @app.route('/teacher-<id>/course-<cid>/labs', methods=['GET', 'POST'])
 def labs_list(id, cid):
     if not authorized():
         return redirect(url_for('login'))
-    teacher = User.get(id=id)
-    if teacher.id != current_user.id:
+    teacher = Teacher.get(id=id)
+    if teacher.id != current_user.id and not Admin.get(id=current_user.id):
         return redirect(url_for('login'))
 
     course = Course.get(id=cid)
@@ -287,8 +325,8 @@ def labs_list(id, cid):
 def lab_edit(tid, lid):
     if not authorized():
         return redirect(url_for('login'))
-    teacher = User.get(id=tid)
-    if teacher.id != current_user.id:
+    teacher = Teacher.get(id=tid)
+    if teacher.id != current_user.id and not Admin.get(id=current_user.id):
         return redirect(url_for('login'))
     show = isinstance(current_user, Admin)
 
@@ -364,8 +402,11 @@ def lab_edit(tid, lid):
 
 @app.route('/teacher-<id>/course-<cid>/lab-<lid>/delete', methods=['GET', 'POST'])
 def lab_delete(id, cid, lid):
-    if current_user.id != int(id):
-        return redirect(url_for("login"))
+    if not authorized():
+        return redirect(url_for('login'))
+    teacher = Teacher.get(id=id)
+    if teacher.id != current_user.id and not Admin.get(id=current_user.id):
+        return redirect(url_for('login'))
     lab = Lab.get(id=lid)
 
     try:
@@ -381,7 +422,7 @@ def add_existing_lab(id, cid):
     if not authorized():
         return redirect(url_for('login'))
     teacher = User.get(id=id)
-    if teacher.id != current_user.id:
+    if teacher.id != current_user.id and not Admin.get(id=current_user.id):
         return redirect(url_for('login'))
 
     course = Course.get(id=cid)
@@ -789,7 +830,10 @@ def group_list(tid):
 
 @app.route('/group-<gid>/students', methods=['GET', 'POST'])
 def student_list(gid):
-    if not authorized() and not (isinstance(current_user, Admin) or isinstance(current_user, Teacher)):
+    if not authorized():
+        return redirect(url_for('login'))
+    teacher = Teacher.get(id=id)
+    if teacher.id != current_user.id and not Admin.get(id=current_user.id):
         return redirect(url_for('login'))
 
     group = Group.get(id=gid)
@@ -800,64 +844,7 @@ def student_list(gid):
     return render_template('teacher/students.html', teacher=current_user, group=group, students=students)
 
 
-@app.route('/admin/student-<sid>/edit', methods=['GET', 'POST'])
-def student_edit(sid):
-    if not authorized() and not isinstance(current_user, Admin):
-        return redirect(url_for('login'))
-
-    student = Student.get(id=sid)
-
-    groups = []
-    query = select(group.code for group in Group)[:]
-    for group in query:
-        groups.append(group)
-
-    form = request.form
-    if request.method == "POST" and 'update' in request.form:
-        surname = form.get('surnameInput')
-        name = form.get('nameInput')
-        patronymic = form.get('patronymicInput')
-        login = form.get('loginInput')
-        group = form.get('group')
-        email = form.get('emailInput')
-
-        if surname == '':
-            surname = student.surname
-        if name == '':
-            name = student.name
-        if patronymic == '':
-            patronymic = student.patronymic
-        if login == '':
-            login = student.login
-        if email == '':
-            email = student.email
-        if group != student.group.code:
-            activated = student.activated
-            student.delete()
-            s = Student(
-                surname=surname,
-                name=name,
-                patronymic=patronymic,
-                login=login,
-                group=Group.get(code=group),
-                email=email,
-                activated=activated
-            )
-
-        student.surname = surname
-        student.name = name
-        student.patronymic = patronymic
-        student.login = login
-        student.email = email
-
-        flash('Данные студента успешно обновлены!', 'success')
-
-    return render_template('admin/student-item.html', teacher=current_user, student=student, groups=groups)
-
-
-
 @app.route('/', methods=['GET', 'POST'])
-@app.route('/index', methods=['GET', 'POST'])
 def login():
     if authorized():
         if Teacher.get(id=current_user.id):
@@ -923,43 +910,6 @@ def admin():
     return render_template('admin/index.html')
 
 
-@app.route('/admin/create_teacher', methods=['GET', 'POST'])
-def create_teacher():
-    if not authorized():
-        return redirect(url_for('login'))
-
-    form = request.form
-    reg_code = token_hex(7)
-    if request.method == 'POST' and 'createTeacherForm' in request.form:
-        name = form.get('nameInput')
-        surname = form.get('surnameInput')
-        patronymic = form.get('patronymicInput')
-        faculty = form.get('facultyInput')
-        department = form.get('departmentInput')
-        email = form.get('emailInput')
-        reg_code_final = form.get('regcodeInput')
-        if reg_code_final == '':
-            reg_code_final = reg_code
-        if name == '' or surname == '' or patronymic == '':
-            flash("Обязательно поле не заполнено!", "warning")
-            return render_template('admin/create_teacher.html',reg_code=reg_code)
-
-        t = Teacher(
-            surname=surname,
-            name=name,
-            patronymic=patronymic,
-            faculty=faculty,
-            department=department,
-            email=email,
-            reg_code=reg_code_final,
-            activated=False
-        )
-        reg_code = token_hex(7)
-        flash("Учётная запись преподавателя успешно создана! Регистрационный код: " + reg_code_final, "success")
-
-    return render_template('admin/create_teacher.html',reg_code=reg_code)
-
-
 @app.route('/student/courses', methods=['GET', 'POST'])
 def student_courses():
     if not authorized():
@@ -1012,6 +962,7 @@ def student_lab_page(lid):
         if attempt.studentID == student.id:
             attempts.append(attempt)
 
+    #TODO file correct upload
     if request.method == 'POST':
         file = request.files['programFile']
         if file and allowed_file(file.filename):
@@ -1034,3 +985,269 @@ def student_lab_page(lid):
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+
+@app.route('/admin/courses')
+def admin_course_list():
+    if not authorized():
+        return redirect(url_for('login'))
+    admin = Admin.get(id=current_user.id)
+    if not admin:
+        return redirect(url_for('login'))
+
+    courses = select(c for c in Course)
+    out = []
+    s = ''
+    for course in courses:
+        for group in course.groups:
+            s += group.code + " "
+        s = sorted(s.split(' '))
+        for i in s:
+            if i == ' ':
+                s.remove(i)
+        s = ' '.join(s)
+        teacherFio = course.teacher.surname + ' ' + course.teacher.name[0] + '. ' + course.teacher.patronymic[0] + '.'
+        out.append((course.id, course.title, teacherFio, s, course.teacher.id))
+        s = ''
+
+    out = sorted(out)
+
+    return render_template('admin/courses.html', courses=out)
+
+@app.route('/admin/groups', methods=['GET', 'POST'] )
+def admin_group_list():
+    if not authorized():
+        return redirect(url_for('login'))
+    admin = Admin.get(id=current_user.id)
+    if not admin:
+        return redirect(url_for('login'))
+
+    groups = select(g for g in Group)[:]
+
+    out = []
+    for group in groups:
+        out.append((group.id, group.code))
+
+    out = sorted(out)
+
+    return render_template('admin/groups.html', groups=out)
+
+
+@app.route('/admin/group<id>/delete', methods=['GET', 'POST'])
+def admin_delete_group(id):
+    if not authorized():
+        return redirect(url_for('login'))
+    admin = Admin.get(id=current_user.id)
+    if not admin:
+        return redirect(url_for('login'))
+
+    Group.get(id=id).delete()
+
+    return redirect(admin_group_list)
+
+#TODO student delete, deleting his attempts
+@app.route('/admin/group<code>/students', methods=['GET', 'POST'] )
+def admin_student_list(code):
+    if not authorized():
+        return redirect(url_for('login'))
+    admin = Admin.get(id=current_user.id)
+    if not admin:
+        return redirect(url_for('login'))
+
+    group = Group.get(code=code)
+    students = group.students
+    students = sorted(students, key=lambda stud: stud.surname + stud.name)
+
+    return render_template('admin/students.html', group=group, students=students, cuser=current_user)
+
+
+@app.route('/admin/group<code>/add_student', methods=['GET', 'POST'] )
+def admin_add_student(code):
+    if not authorized():
+        return redirect(url_for('login'))
+    admin = Admin.get(id=current_user.id)
+    if not admin:
+        return redirect(url_for('login'))
+
+    group = Group.get(code=code)
+
+    form = request.form
+    if request.method == "POST" and 'update' in request.form:
+        surname = form.get('surnameInput')
+        name = form.get('nameInput')
+        patronymic = form.get('patronymicInput')
+        reg_code = token_hex(7)
+        s = Student(
+            surname=surname,
+            name=name,
+            patronymic=patronymic,
+            group=group,
+            reg_code=reg_code,
+            activated=False
+        )
+        flash('Студент успешно создан и добавлен в группу ' + group.code + '!' + " Регистрационный код " + reg_code +' .',
+              'success')
+
+    return render_template('admin/add-student.html', group=group)
+
+#TODO teacher delete, course copying to other teacher, or delete all connected data
+@app.route('/admin/teachers', methods=['GET', 'POST'])
+def admin_teachers_list():
+    if not authorized():
+        return redirect(url_for('login'))
+    admin = Admin.get(id=current_user.id)
+    if not admin:
+        return redirect(url_for('login'))
+
+    teachers = select(t for t in Teacher)[:]
+
+    return render_template('admin/teachers.html', teachers=teachers, cuser=current_user)
+
+
+@app.route('/admin/create_teacher', methods=['GET', 'POST'])
+def create_teacher():
+    if not authorized():
+        return redirect(url_for('login'))
+    admin = Admin.get(id=current_user.id)
+    if not admin:
+        return redirect(url_for('login'))
+
+    form = request.form
+    reg_code = token_hex(7)
+    if request.method == 'POST' and 'createTeacherForm' in request.form:
+        name = form.get('nameInput')
+        surname = form.get('surnameInput')
+        patronymic = form.get('patronymicInput')
+        faculty = form.get('facultyInput')
+        department = form.get('departmentInput')
+        email = form.get('emailInput')
+        reg_code_final = form.get('regcodeInput')
+        if reg_code_final == '':
+            reg_code_final = reg_code
+        if name == '' or surname == '' or patronymic == '':
+            flash("Обязательно поле не заполнено!", "warning")
+            return render_template('admin/create_teacher.html',reg_code=reg_code)
+
+        t = Teacher(
+            surname=surname,
+            name=name,
+            patronymic=patronymic,
+            faculty=faculty,
+            department=department,
+            email=email,
+            reg_code=reg_code_final,
+            activated=False
+        )
+        reg_code = token_hex(7)
+        flash("Учётная запись преподавателя успешно создана! Регистрационный код: " + reg_code_final, "success")
+
+    return render_template('admin/create_teacher.html',reg_code=reg_code)
+
+
+@app.route('/admin/teacher<id>/edit', methods=['GET', 'POST'])
+def admin_teacher_edit(id):
+    if not authorized():
+        return redirect(url_for('login'))
+    admin = Admin.get(id=current_user.id)
+    if not admin:
+        return redirect(url_for('login'))
+
+    teacher = Teacher.get(id=id)
+
+    form = request.form
+    if request.method == 'POST' and 'updateForm' in request.form:
+        if form.get('inputPassword') != form.get('inputRepassword'):
+            flash("Введённые пароли не совпадают!", "warning")
+            return render_template('admin/teacher-edit.html', teacher=teacher)
+
+        name = form.get('nameInput')
+        surname = form.get('surnameInput')
+        patronymic = form.get('patronymicInput')
+        faculty = form.get('facultyInput')
+        department = form.get('departmentInput')
+        email = form.get('emailInput')
+        password = form.get('inputPassword')
+
+        if name != '':
+            teacher.name = name
+        if surname != '':
+            teacher.surname = surname
+        if patronymic != '':
+            teacher.patronymic = patronymic
+        if faculty != '':
+            teacher.faculty = faculty
+        if department != '':
+            teacher.department = department
+        if email != '':
+            teacher.email = email
+        if password != '':
+            teacher.password = generate_password_hash(password)
+
+        flash('Данные преподавателя успешно обновлены!', 'success')
+
+
+
+    return render_template('admin/teacher-edit.html', teacher=teacher)
+
+
+@app.route('/admin/student<id>/edit', methods=['GET', 'POST'])
+def admin_student_edit(id):
+    if not authorized():
+        return redirect(url_for('login'))
+    admin = Admin.get(id=current_user.id)
+    if not admin:
+        return redirect(url_for('login'))
+
+    student = Student.get(id=id)
+
+    groups = []
+    query = select(group.code for group in Group)[:]
+    for group in query:
+        groups.append(group)
+
+    form = request.form
+    if request.method == "POST" and 'update' in request.form:
+        surname = form.get('surnameInput')
+        name = form.get('nameInput')
+        patronymic = form.get('patronymicInput')
+        login = form.get('loginInput')
+        group = form.get('group')
+        email = form.get('emailInput')
+
+        if surname == '':
+            surname = student.surname
+        if name == '':
+            name = student.name
+        if patronymic == '':
+            patronymic = student.patronymic
+        if login == '':
+            login = student.login
+        if email == '':
+            email = student.email
+        #TODO what to do with existing student labs?
+        if group != student.group.code:
+            activated = student.activated
+            student.delete()
+            s = Student(
+                surname=surname,
+                name=name,
+                patronymic=patronymic,
+                login=login,
+                group=Group.get(code=group),
+                email=email,
+                activated=activated
+            )
+
+        student.surname = surname
+        student.name = name
+        student.patronymic = patronymic
+        student.login = login
+        student.email = email
+
+        flash('Данные студента успешно обновлены!', 'success')
+
+    return render_template('admin/student-edit.html', cuser=current_user, student=student, groups=groups)
+
+
+
+

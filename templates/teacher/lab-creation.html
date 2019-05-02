@@ -34,24 +34,13 @@
         <div class="container-fluid">
             <div class="row">
                 <div class="col-6">
-                    <h1 class="mt-4">Создание лабораторной работы</h1>
+                    <h2 class="mt-4">Создание лабораторной работы {% if show %} Преподаватель: {{ teacherFio[0] }} {% endif %}</h2>
                     <form method="post" id="labCreation">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <div class="form-group">
                             <label for="titleInput">Название</label>
                             <input type="text" name="titleInput" id="titleInput" class="form-control" placeholder="Название">
                         </div>
-                        {% if show %}
-                        <div class="form-group">
-                            <label for="teacherInput">Преподаватель</label>
-                            <select id="teacherInput" class="custom-select">
-                                <option selected>Преподаватель</option>
-                                <option value="1">One</option>
-                                <option value="2">Two</option>
-                                <option value="3">Three</option>
-                            </select>
-                        </div>
-                        {% endif %}
                         <div id="course_selectors" class="form-group">
                             <label for="courseInput">Предмет</label>
                             <div class="course-selector d-flex">

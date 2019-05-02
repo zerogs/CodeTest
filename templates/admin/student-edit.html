@@ -18,12 +18,11 @@
     <div class="bg-light border-right" id="sidebar-wrapper">
         <div class="sidebar-heading">Code Test</div>
         <div class="list-group list-group-flush">
-            <a href="{{ url_for("course_list", id=teacher.id) }}" class="list-group-item list-group-item-action bg-light">Предметы</a>
-            <a href="{{ url_for("group_list", tid=teacher.id)}}" class="list-group-item list-group-item-action bg-light">Группы</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Overview</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Events</a>
+            <a href="{{ url_for("admin_course_list") }}" class="list-group-item list-group-item-action bg-light">Предметы</a>
+            <a href="{{ url_for("admin_group_list")}}" class="list-group-item list-group-item-action bg-light">Группы</a>
             <a href="#" class="list-group-item list-group-item-action bg-light">Profile</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Status</a>
+            <a href="{{ url_for("logout")}}" class="list-group-item list-group-item-action bg-light">Выйти</a>
+            <a class="list-group-item bg-light">Вы вошли как {{ cuser.surname + " " + cuser.name + " " + cuser.patronymic }}</a>
         </div>
     </div>
     <!-- end sidebar -->
@@ -58,7 +57,9 @@
                                 <select class="select-group custom-select mb-2" data-index="0" name="group">
                                     <option selected>{{ student.group.code }}</option>
                                     {% for group in groups %}
-                                    <option value={{ group.code }}> {{ group.code }}</option>
+                                        {% if group != student.group.code %}
+                                        <option value="{{ group}}"> {{ group }}</option>
+                                        {% endif %}
                                     {% endfor %}
                                 </select>
                                 <i class="material-icons mt-2 ml-2 delete-course" style="color: red; cursor: pointer;">
@@ -69,6 +70,14 @@
                         <div class="form-group">
                             <label for="emailInput">E-mail</label>
                             <input type="email" id="emailInput" class="form-control" placeholder="{{ student.email }}">
+                        </div>
+                        <div class="form-group">
+                            <label for="inputPassword">Пароль</label>
+                            <input type="password" class="form-control" name="inputPassword" placeholder="Пароль">
+                        </div>
+                        <div class="form-group">
+                            <label for="inputRepassword">Повтор пароля</label>
+                            <input type="password" class="form-control" name="inputRepassword" placeholder="Повтор пароля">
                         </div>
                         <button type="submit" name="update" class="btn btn-primary">Обновить</button>
                     </form>

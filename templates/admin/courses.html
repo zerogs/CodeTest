@@ -16,8 +16,8 @@
     <div class="bg-light border-right" id="sidebar-wrapper">
         <div class="sidebar-heading">Code Test</div>
         <div class="list-group list-group-flush">
-            <a href="#" class="list-group-item list-group-item-action bg-light">Overview</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Events</a>
+            <a href="{{ url_for("admin_course_list") }}" class="list-group-item list-group-item-action bg-light">Предметы</a>
+            <a href="{{ url_for("admin_group_list")}}" class="list-group-item list-group-item-action bg-light">Группы</a>
             <a href="#" class="list-group-item list-group-item-action bg-light">Profile</a>
             <a href="{{ url_for("logout")}}" class="list-group-item list-group-item-action bg-light">Выйти</a>
         </div>
@@ -38,6 +38,8 @@
                             <th scope="col">ID</th>
                             <th scope="col">Название</th>
                             <th scope="col">Преподаватель</th>
+                            <th scope="col">Группы</th>
+                            <th scope="col"></th>
                             <th scope="col"></th>
                         </tr>
                         </thead>
@@ -47,7 +49,16 @@
                             <th scope="row">{{ course[0] }}</th>
                             <td>{{ course[1] }}</td>
                             <td>{{ course[2] }}</td>
-                            <td><a href={{ url_for("student_course_labs", cid=course[0]) }}>Лаб. работы</a></td>
+                            <td>{{ course[3] }}</td>
+                            <td><a href={{ url_for("labs_list", id=course[4], cid=course[0]) }}>Лаб. работы</a></td>
+                            <td>
+                                <a href={{ url_for('course_edit', courseid=course[0], teacherid=course[4] ) }}><i class="material-icons">
+                                    create
+                                </i></a>
+                                <a href="/" onClick="setId({{ course[0] }}, '{{ course[1] }}'); return false" data-toggle="modal" data-target="#deleteModal"><i class="material-icons">
+                                    delete
+                                </i></a>
+                            </td>
                         </tr>
                         {% endfor %}
                         </tbody>
@@ -60,6 +71,25 @@
                 </div>
             </div>
         </div>
+        <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+          <div class="modal-dialog" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Удаление записи</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="modal-body">
+                Вы действительно хотите удалить запись?
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="sendRequest(); return false;">Подтвердить</button>
+              </div>
+            </div>
+          </div>
+        </div>
     </div>
     <!-- end content -->
 
@@ -67,5 +97,20 @@
 
     <!-- end footer -->
 </div>
+<script type="application/javascript">
+    var current_id = 0;
+    function setId(id, title, tid)
+    {
+        current_id = id;
+        teacher_id = tid;
+        $(".modal-body").html('Вы действительно хотите удалить предмет ' + title + '?');
+    }
+    function sendRequest() {
+        $.get("/teacher-" + teacher_id + "/course_delete/" + current_id, () => {
+           $("#deleteModal").modal('hide');
+        window.location.reload();
+        });
+    }
+</script>
 </body>
 </html>

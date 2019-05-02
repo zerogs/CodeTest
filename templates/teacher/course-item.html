@@ -44,11 +44,11 @@
                         {% if show %}
                         <div class="form-group">
                             <label>Преподаватель</label>
-                            <select class="custom-select">
+                            <select class="custom-select" name="teacherInput">
                                 <option selected>Преподаватель</option>
-                                <option value="1">One</option>
-                                <option value="2">Two</option>
-                                <option value="3">Three</option>
+                                {% for teacher in teachers %}
+                                    <option value="{{ teacher[0] }}">{{ teacher[1] }}</option>
+                                {% endfor %}
                             </select>
                         </div>
                         {% endif %}

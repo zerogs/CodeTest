@@ -1,6 +1,8 @@
 <html>
 <head>
-    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+            integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+            crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
             integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
             crossorigin="anonymous"></script>
@@ -16,10 +18,11 @@
     <div class="bg-light border-right" id="sidebar-wrapper">
         <div class="sidebar-heading">Code Test</div>
         <div class="list-group list-group-flush">
-            <a href="#" class="list-group-item list-group-item-action bg-light">Overview</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Events</a>
+            <a href="{{ url_for("admin_course_list") }}" class="list-group-item list-group-item-action bg-light">Предметы</a>
+            <a href="{{ url_for("admin_group_list")}}" class="list-group-item list-group-item-action bg-light">Группы</a>
             <a href="#" class="list-group-item list-group-item-action bg-light">Profile</a>
             <a href="{{ url_for("logout")}}" class="list-group-item list-group-item-action bg-light">Выйти</a>
+            <a class="list-group-item bg-light">Вы вошли как {{ cuser.surname + " " + cuser.name + " " + cuser.patronymic }}</a>
         </div>
     </div>
     <!-- end sidebar -->
@@ -30,24 +33,33 @@
         <div class="container-fluid">
             <div class="row">
                 <div class="col-6">
-                    <h2  class="mt-4">Список предметов</h2>
+                    <h1 class="mt-4">Студенты группы {{ group.code }} <button type="submit" onClick="window.location.replace('{{ url_for("admin_add_student", code=group.code) }}')" class="btn btn-primary">Добавить</button></h1>
 
                     <table class="table text-center mt-4">
                         <thead class="thead-dark">
                         <tr>
                             <th scope="col">ID</th>
-                            <th scope="col">Название</th>
-                            <th scope="col">Преподаватель</th>
+                            <th scope="col">Фамилия</th>
+                            <th scope="col">Имя</th>
+                            <th scope="col">Отчество</th>
                             <th scope="col"></th>
                         </tr>
                         </thead>
                         <tbody>
-                        {% for course in courses %}
+                        {% for student in students %}
                         <tr>
-                            <th scope="row">{{ course[0] }}</th>
-                            <td>{{ course[1] }}</td>
-                            <td>{{ course[2] }}</td>
-                            <td><a href={{ url_for("student_course_labs", cid=course[0]) }}>Лаб. работы</a></td>
+                            <th scope="row">{{ student.id }}</th>
+                            <td>{{ student.surname }}</td>
+                            <td>{{ student.name }}</td>
+                            <td>{{ student.patronymic }}</td>
+                            <td>
+                                <a href="{{ url_for('admin_student_edit', id=student.id) }}"><i class="material-icons">
+                                        create
+                                </i></a>
+                                <a href="#"><i class="material-icons">
+                                    delete
+                                </i></a>
+                            </td>
                         </tr>
                         {% endfor %}
                         </tbody>
@@ -61,6 +73,7 @@
             </div>
         </div>
     </div>
+
     <!-- end content -->
 
     <!-- footer -->

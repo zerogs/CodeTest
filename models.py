@@ -10,7 +10,7 @@ class Lab(db.Entity):
     title = Required(str)
     groups = Set('Group')
     teacher = Required('Teacher')
-    courses = Set('Course')
+    course = Required('Course')
     variants = Set('Variant')
 
 
@@ -71,6 +71,10 @@ class Teacher(User):
     courses = Set('Course')
     faculty = Optional(str)
     department = Optional(str)
+
+    @property
+    def fullname(self):
+        return self.surname + ' ' + self.name[0] + '. ' + self.patronymic[0] + '.'
 
 
 class Attempt(db.Entity):

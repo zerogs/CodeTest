@@ -4,6 +4,7 @@ from flask_login import current_user, login_user, logout_user
 from models import db, Admin,User, Teacher, Student, Variant, Group, Attempt, Course, Lab, Test, generate_password_hash
 from pony.orm import select
 from werkzeug.utils import secure_filename
+from werkzeug.datastructures import FileStorage
 from datetime import datetime
 from secrets import token_hex
 from csvhandler import csv_reader
@@ -15,11 +16,10 @@ import os
 def authorized():
     if not current_user:
         return False
-    try:
-        return current_user.is_authenticated()
-    except:
-        return current_user.is_authenticated
-
+    auth = current_user.is_authenticated
+    if callable(auth):
+        return auth()
+    return auth
 
 @app.route('/update_teacher/<id>', methods=['GET', 'POST'])
 def update_teacher_profile(id):
@@ -71,16 +71,15 @@ def update_student_profile(id):
 def create_course(tid):
     if not authorized():
         return redirect(url_for('login'))
-    teacher = Teacher.get(id=id)
+    teacher = Teacher.get(id=tid)
     if teacher.id != current_user.id and not Admin.get(id=current_user.id):
         return redirect(url_for('login'))
 
     show = isinstance(current_user, Admin)
 
-    groups = []
-    query = select(group.code for group in Group)[:]
-    for group in query:
-        groups.append(group)
+    groups = select(group.code for group in Group)[:]
+    # for group in query:
+    #     groups.append(group)
 
     form = request.form
     if request.method == 'POST' and 'create' in request.form:
@@ -123,14 +122,11 @@ def course_edit(courseid, teacherid):
     teachers = select((t.id, t.surname + ' ' + t.name[0] + '. ' + t.patronymic[0] + '.') for t in Teacher)[:]
     change_course_teacher = False
     cg = course.groups
-    groups = []
-    query = select(group.code for group in Group)[:]
-    for group in query:
-        groups.append(group)
+    groups = select(group.code for group in Group)[:]
 
     form = request.form
     if request.method == 'POST' and 'update' in request.form:
-        title = form.get('nameInput')
+        title = form.get('nameInput') or course.title
 
         if show:
             tid = form.get('teacherInput')
@@ -140,8 +136,8 @@ def course_edit(courseid, teacherid):
                 change_course_teacher = True
 
         if change_course_teacher:
-            if title == '':
-                title = course.title
+            # if title == '':
+            #     title = course.title
 
             group_codes = request.form.getlist('group[]')
             try:
@@ -165,8 +161,8 @@ def course_edit(courseid, teacherid):
                 c.groups.add(group)
 
         else:
-            if title == '':
-                title = course.title
+            # if not title:  # might be empty string
+            #     title = course.title
 
             group_codes = request.form.getlist('group[]')
             try:
@@ -174,7 +170,7 @@ def course_edit(courseid, teacherid):
             except ValueError:
                 pass
 
-            course.title = title
+            # course.title = title
 
             for g in cg:
                 if g.code not in group_codes:
@@ -198,21 +194,11 @@ def course_list(id):
         return redirect(url_for("login"))
 
     teacher = Teacher.get(id=id)
-    courses = teacher.courses
     out = []
-    s = ''
-    for course in courses:
-        for group in course.groups:
-            s += group.code + " "
-        s = sorted(s.split(' '))
-        for i in s:
-            if i == ' ':
-                s.remove(i)
-        s = ' '.join(s)
+    for course in select(c for c in Course if c.teacher.id == id).order_by(lambda c: c.id):
+        s = ' '.join(g.code for g in sorted(course.groups, key=lambda g: g.code))
         out.append((course.id, course.title, s))
-        s = ''
 
-    out = sorted(out)
     return render_template('teacher/courses.html', courses=out, teacher=teacher)
 
 
@@ -221,8 +207,9 @@ def course_delete(id, cid):
     if not Admin.get(id=current_user.id):
         if current_user.id != int(id):
             return redirect(url_for("login"))
-    course = Course.get(id=cid)
-    course.delete()
+    Course[cid].delete()
+    # course = Course.get(id=cid)
+    # course.delete()
 
     return redirect(url_for('course_list', id=id))
 
@@ -232,19 +219,18 @@ def course_delete(id, cid):
 def create_lab(id):
     if not authorized():
         return redirect(url_for('login'))
-    teacher = Teacher.get(id=id)
+    teacher = Teacher[id]
     if teacher.id != current_user.id and not Admin.get(id=current_user.id):
         return redirect(url_for('login'))
 
     show = isinstance(Admin.get(id=current_user.id), Admin)
 
-    allcourses = select(c.title for c in Course if c.teacher == teacher)[:]
-    teacherFio = select(t.surname + " " + t.name[0] + '.' + t.patronymic[0] + '.' for t in Teacher if t.id == id)[:]
-    allgroups = []
+    allcourses = select(c for c in Course if c.teacher == teacher)[:]
+    teacherFio = select(t.fullname for t in Teacher if t.id == id)[:]
+    allgroups = set()
     for course in allcourses:
-        for group in Course.get(title=course).groups:
-            if group.code not in allgroups:
-                allgroups.append(group.code)
+        for group in course.groups:
+            allgroups.add(group.code)
 
     form = request.form
     if request.method == "POST" and 'create' in request.form:
@@ -252,32 +238,33 @@ def create_lab(id):
 
         if title == '':
             flash("Укажите название предмета!", "warning")
-            return render_template('teacher/lab-creation.html', show=show, courses=allcourses, groups=allgroups)
+            return render_template('teacher/lab-creation.html', show=show, courses=allcourses, groups=sorted(allgroups))
 
-        courses = form.getlist('course[]')
+        courseid = form.get('course')
         groups = form.getlist('group[]')
 
-        try:
-            courses.remove('Предмет')
+        if 'Группа' in groups:
             groups.remove('Группа')
-        except ValueError:
-            pass
+
+        course = Course.get(id=courseid)
 
         l = Lab(
             title=title,
-            teacher=teacher
+            teacher=teacher,
+            course=course
         )
 
-        for course in courses:
-            c = Course.get(title=course)
-            l.courses.add(c)
-            for group in groups:
-                g = Group.get(code=group)
-                if g not in c.groups:
-                    flash('Группа ' + g.code + ' не записана на предмет ' + c.title + '! Группа не будет привязана к данной лабораторной работе.', "warning")
-                l.groups.add(g)
+        course.labs.add(l)
+        for group in groups:
+            g = Group.get(code=group)
+            if g not in course.groups:
+                flash('Группа ' + g.code + ' не записана на предмет ' + course.title + '!', "warning")
+                return render_template('teacher/lab-creation.html', teacher=teacher, show=show, courses=allcourses,
+                                       groups=allgroups,
+                                       teacherFio=teacherFio)
+            g.labs.add(l)
 
-        flash("Лабораторная работа " + title +  " создана!", "success")
+        flash("Лабораторная работа " + title + " создана!", "success")
 
     return render_template('teacher/lab-creation.html',teacher=teacher, show=show, courses=allcourses, groups=allgroups,
                            teacherFio=teacherFio)
@@ -293,30 +280,14 @@ def labs_list(id, cid):
 
     course = Course.get(id=cid)
 
-    labs = select(c.labs for c in Course if c.id == cid)
+    # labs = select(c.labs for c in Course if c.id == cid)
+    labs = Course[cid].labs
 
     out = []
-    s = ''
-    sc = ''
     for lab in labs:
-        for group in lab.groups:
-            if group in course.groups:
-                s += group.code + ","
-        s = sorted(s.split(','))
-        for i in s:
-            if i == '':
-                s.remove(i)
-        s = ','.join(s)
-        for c in lab.courses:
-            sc += c.title + ','
-        sc = sorted(sc.split(','))
-        for i in sc:
-            if i == '':
-                sc.remove(i)
-        sc = ','.join(sc)
-        out.append((lab.id, lab.title, sc, s))
-        s = ''
-        sc = ''
+        groups = [g for g in lab.groups]
+        group_names = ', '.join(sorted([g.code for g in groups]))
+        out.append((lab.id, lab.title, course.title, group_names))
 
     return render_template('teacher/labs.html',group_list=False, labs=out, teacher=teacher, course=course)
 
@@ -333,12 +304,8 @@ def lab_edit(tid, lid):
     lab = Lab.get(id=lid)
 
     lg = lab.groups
-    groups = []
-    gquery = select(group.code for group in Group)[:]
-    for group in gquery:
-        groups.append(group)
+    groups = select(group.code for group in Group)[:]
 
-    lc = lab.courses
     courses = []
 
     cquery = select(course.title for course in Course)[:]
@@ -347,31 +314,25 @@ def lab_edit(tid, lid):
     form = request.form
 
     if request.method == "POST" and 'update' in request.form:
-        title = form.get('titleInput')
-
-        if title == '':
-            title = lab.title
-
+        title = form.get('titleInput') or lab.title
         group_codes = form.getlist('group[]')
-        try:
-            group_codes.remove('Группа')
-        except ValueError:
-            pass
 
+        if 'Группа' in group_codes:
+            group_codes.remove('Группа')
         course_titles = form.getlist('course[]')
         try:
             course_titles.remove('Предмет')
         except ValueError:
             pass
 
-        lab.title = title
+
         missing = False
-        for c in lc:
+        for c in lab.courses:
             if c.title not in course_titles:
                 lab.courses.remove(c)
         for c in course_titles:
-            crs =  Course.get(title=c)
-            if crs not in lc:
+            crs = Course.get(title=c)
+            if crs not in lab.courses:
                 lab.courses.add(crs)
 
 
@@ -381,7 +342,7 @@ def lab_edit(tid, lid):
         for code in group_codes:
             g = Group.get(code=code)
             if g not in lg:
-                for c in lc:
+                for c in lab.courses:
                     if g not in c.groups:
                         missing = True
                     else:
@@ -390,14 +351,14 @@ def lab_edit(tid, lid):
                 if missing:
                     flash('Группа ' + g.code + " не записана на один из курсов где используется лабораторная работа!",
                           "warning")
-                    return render_template('teacher/lab-item.html', lab=lab, lg=lg, lc=lc, courses=courses,
+                    return render_template('teacher/lab-item.html', lab=lab, lg=lg, lc=lab.courses, courses=courses,
                                            groups=groups, teacher=teacher)
                 else:
                     lab.groups.add(g)
 
         flash('Данные успешно обновлены!', 'success')
 
-    return render_template('teacher/lab-item.html', lab=lab, lg=lg, lc=lc, courses=courses, groups=groups, teacher=teacher)
+    return render_template('teacher/lab-item.html', lab=lab, lg=lg, lc=lab.courses, courses=courses, groups=groups, teacher=teacher)
 
 
 @app.route('/teacher-<id>/course-<cid>/lab-<lid>/delete', methods=['GET', 'POST'])
@@ -521,7 +482,8 @@ def dist_vars(id, code, cid, lid):
             for v in variants:
                 if i == v:
                     continue
-                if i == '#' or v == '#':
+                # if i == '#' or v == '#':
+                if '#' in (i, v):
                     continue
                 else:
                     if i.split(',')[1] == v.split(',')[1]:
@@ -558,8 +520,29 @@ def variant_list(tid, cid, lid):
 
     variants = select(l.variants for l in Lab if l.id == lid)
 
-    return render_template('teacher/variants.html', lab=lab, variants=variants, teacher=teacher, course=course)
+    return render_template('teacher/variants.html', lab=lab, variants=variants, teacher=teacher, course=course,
+                           cuser=current_user)
 
+
+@app.route('/teacher-<tid>/course-<cid>/lab-<lid>/variant-<vid>/attempts', methods=['GET', 'POST'])
+def variant_attempts(tid, cid, lid, vid):
+    if not authorized():
+        return redirect(url_for('login'))
+    teacher = User.get(id=tid)
+    if teacher.id != current_user.id:
+        return redirect(url_for('login'))
+
+    lab = Lab.get(id=lid)
+    var = Variant.get(id=vid)
+    attempts = var.attempts
+    attempts = sorted(attempts, key=lambda a: a.id)
+    students = []
+    for a in attempts:
+        students.append(Student.get(id=a.studentID))
+    out = zip(attempts, students)
+
+
+    return render_template('teacher/attempts.html', var=var, attempts=attempts, cuser=current_user, lab=lab)
 
 @app.route('/teacher-<tid>/course-<cid>/lab-<lid>/create_variant/', methods=['GET', 'POST'])
 def create_variant(tid, cid, lid):
@@ -832,7 +815,7 @@ def group_list(tid):
 def student_list(gid):
     if not authorized():
         return redirect(url_for('login'))
-    teacher = Teacher.get(id=id)
+    teacher = Teacher.get(id=current_user.id)
     if teacher.id != current_user.id and not Admin.get(id=current_user.id):
         return redirect(url_for('login'))
 
@@ -846,13 +829,14 @@ def student_list(gid):
 
 @app.route('/', methods=['GET', 'POST'])
 def login():
+    #TODO password reset
     if authorized():
         if Teacher.get(id=current_user.id):
             return redirect(url_for('course_list', id=current_user.id))
         if Student.get(id=current_user.id):
             return redirect(url_for('student_courses'))
         if current_user.is_admin:
-            return redirect(url_for('admin'))
+            return redirect(url_for('admin_course_list'))
 
     form = request.form
     if request.method == 'POST' and 'authForm' in request.form:
@@ -926,7 +910,7 @@ def student_courses():
         out.append((course.id, course.title, teacher.surname + " " + teacher.name + " " + teacher.patronymic))
     out = sorted(out, key=lambda c: c[0])
 
-    return render_template('student/courses.html', courses=out, student=student)
+    return render_template('student/courses.html', courses=out, student=student, cuser=current_user)
 
 
 @app.route('/student/course-<cid>/labs', methods=['GET', 'POST'])
@@ -940,9 +924,9 @@ def student_course_labs(cid):
     course = Course.get(id=cid)
     group = current_user.group
 
-    labs = select(l for l in Lab if course in l.courses and group in l.groups)
+    labs = select(l for l in Lab if course == l.course  and group in l.groups)
 
-    return render_template('student/labs.html', labs=labs, course=course)
+    return render_template('student/labs.html', labs=labs, course=course, cuser=current_user)
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -962,24 +946,25 @@ def student_lab_page(lid):
         if attempt.studentID == student.id:
             attempts.append(attempt)
 
-    #TODO file correct upload
     if request.method == 'POST':
         file = request.files['programFile']
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], student.group.code + '/' + str(student.id) + '/' + str(lab.id) + "/" + filename))
+            path = os.path.join(app.config['UPLOAD_FOLDER'], student.group.code, str(student.id), str(lab.id))
+            if not os.path.exists(path):
+                os.makedirs(path)
+            file.save(os.path.join(os.getcwd(), path, filename))
             a = Attempt(
                 studentID=student.id,
                 variant=var,
                 dt=datetime.now(),
-                source=filename,
+                source=os.path.join(os.getcwd(), app.config['UPLOAD_FOLDER'], student.group.code, str(student.id), str(lab.id), filename),
                 result="Не проверено"
             )
 
-            return redirect(url_for('uploaded_file',
-                                    filename=filename))
+            return render_template('student/variant_info.html', var=var, lab=lab, attempts=attempts, cuser=current_user)
 
-    return render_template('student/variant_info.html', var=var, lab=lab, attempts=attempts)
+    return render_template('student/variant_info.html', var=var, lab=lab, attempts=attempts, cuser=current_user)
 
 
 @app.route('/uploads/<filename>')
@@ -1012,7 +997,7 @@ def admin_course_list():
 
     out = sorted(out)
 
-    return render_template('admin/courses.html', courses=out)
+    return render_template('admin/courses.html', courses=out, cuser=current_user)
 
 @app.route('/admin/groups', methods=['GET', 'POST'] )
 def admin_group_list():
@@ -1030,7 +1015,7 @@ def admin_group_list():
 
     out = sorted(out)
 
-    return render_template('admin/groups.html', groups=out)
+    return render_template('admin/groups.html', groups=out, cuser=current_user)
 
 
 @app.route('/admin/group<id>/delete', methods=['GET', 'POST'])
@@ -1088,7 +1073,7 @@ def admin_add_student(code):
         flash('Студент успешно создан и добавлен в группу ' + group.code + '!' + " Регистрационный код " + reg_code +' .',
               'success')
 
-    return render_template('admin/add-student.html', group=group)
+    return render_template('admin/add-student.html', group=group, cuser=current_user)
 
 #TODO teacher delete, course copying to other teacher, or delete all connected data
 @app.route('/admin/teachers', methods=['GET', 'POST'])
@@ -1126,7 +1111,7 @@ def create_teacher():
             reg_code_final = reg_code
         if name == '' or surname == '' or patronymic == '':
             flash("Обязательно поле не заполнено!", "warning")
-            return render_template('admin/create_teacher.html',reg_code=reg_code)
+            return render_template('admin/create_teacher.html',reg_code=reg_code, cuser=current_user)
 
         t = Teacher(
             surname=surname,
@@ -1141,7 +1126,7 @@ def create_teacher():
         reg_code = token_hex(7)
         flash("Учётная запись преподавателя успешно создана! Регистрационный код: " + reg_code_final, "success")
 
-    return render_template('admin/create_teacher.html',reg_code=reg_code)
+    return render_template('admin/create_teacher.html',reg_code=reg_code, cuser=current_user)
 
 
 @app.route('/admin/teacher<id>/edit', methods=['GET', 'POST'])
@@ -1158,7 +1143,7 @@ def admin_teacher_edit(id):
     if request.method == 'POST' and 'updateForm' in request.form:
         if form.get('inputPassword') != form.get('inputRepassword'):
             flash("Введённые пароли не совпадают!", "warning")
-            return render_template('admin/teacher-edit.html', teacher=teacher)
+            return render_template('admin/teacher-edit.html', teacher=teacher, cuser=current_user)
 
         name = form.get('nameInput')
         surname = form.get('surnameInput')
@@ -1187,7 +1172,7 @@ def admin_teacher_edit(id):
 
 
 
-    return render_template('admin/teacher-edit.html', teacher=teacher)
+    return render_template('admin/teacher-edit.html', teacher=teacher, cuser=current_user)
 
 
 @app.route('/admin/student<id>/edit', methods=['GET', 'POST'])

@@ -22,6 +22,7 @@
             <a href="#" class="list-group-item list-group-item-action bg-light">Events</a>
             <a href="#" class="list-group-item list-group-item-action bg-light">Profile</a>
             <a href="{{ url_for("logout")}}" class="list-group-item list-group-item-action bg-light">Выйти</a>
+            <a class="list-group-item bg-light">Вы вошли как {{ cuser.surname + " " + cuser.name + " " + cuser.patronymic }}</a>
         </div>
     </div>
     <!-- end sidebar -->
@@ -33,13 +34,13 @@
             <div class="row">
                 <div class="col-6">
                     <h2  class="mt-4">Варианты для лабораторной работы {{ lab.title }} <button type="submit" onClick="window.location.replace('{{ url_for("create_variant", tid=teacher.id, cid=course.id, lid=lab.id) }}')" class="btn btn-primary">Создать</button></h2>
-
                     <table class="table text-center mt-4">
                         <thead class="thead-dark">
                         <tr>
                             <th scope="col">ID</th>
                             <th scope="col">Номер</th>
                             <th scope="col">Название</th>
+                            <th scope="col"></th>
                             <th scope="col"></th>
                             <th scope="col"></th>
                         </tr>
@@ -51,6 +52,7 @@
                             <td>{{ var.number}}</td>
                             <td>{{ var.title }}</td>
                             <td><a href="{{ url_for('test_list', tid=teacher.id, cid=course.id, lid=lab.id, vid=var.id)}}">Тесты</a></td>
+                            <td><a href="{{ url_for('variant_attempts', tid=teacher.id, cid=course.id, lid=lab.id, vid=var.id)}}">Решения</a></td>
                             <td>
                                 <a href="{{ url_for('variant_edit', tid=teacher.id, cid=course.id, lid=lab.id, vid=var.id)}}"><i class="material-icons">
                                     create

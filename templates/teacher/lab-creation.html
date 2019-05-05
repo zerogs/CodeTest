@@ -41,18 +41,15 @@
                             <label for="titleInput">Название</label>
                             <input type="text" name="titleInput" id="titleInput" class="form-control" placeholder="Название">
                         </div>
-                        <div id="course_selectors" class="form-group">
+                        <div id="course_selector" class="form-group">
                             <label for="courseInput">Предмет</label>
                             <div class="course-selector d-flex">
-                                <select id="courseInput" class="select-course custom-select mb-2" data-index="0" name="course[]">
+                                <select id="courseInput" class="select-course custom-select mb-2" data-index="0" name="course">
                                     <option selected>Предмет</option>
                                     {% for c in courses %}
-                                    <option value="{{ c }}"> {{ c }}</option>
+                                    <option value="{{ c.id }}"> {{ c.title }}</option>
                                     {% endfor %}
                                 </select>
-                                <i class="material-icons mt-2 ml-2 delete-course" style="color: red; cursor: pointer;">
-                                    clear
-                                </i>
                             </div>
                         </div>
                         <div id="group_selectors" class="form-group">
@@ -93,19 +90,6 @@
 
     <!-- end footer -->
     <script type="application/javascript">
-        $("body").on("change", "select.select-course", (el) => {
-            let element = $(el.target);
-            let index = parseInt(element.attr("data-index")) + 1;
-            if ($("select.course-selector[data-index=" + index + "]").length === 0) {
-                let new_el = element.parent().clone();
-                new_el.find("select").attr("data-index", index);
-                $("#course_selectors").append(new_el);
-            }
-        });
-        $("body").on("click", "i.delete-course", (el) => {
-            let element = $(el.target);
-            element.parent("div.course-selector")[0].remove();
-        });
         $("body").on("change", "select.select-group", (el) => {
             let element = $(el.target);
             let index = parseInt(element.attr("data-index")) + 1;

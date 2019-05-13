@@ -1,0 +1,64 @@
+<html>
+<head>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+            integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+            crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+            integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+            crossorigin="anonymous"></script>
+    <link rel="stylesheet" href={{ url_for('static', filename="css/bootstrap.min.css")}}>
+    <link rel="stylesheet" href={{ url_for('static', filename="css/styles.css")}}>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons"
+          rel="stylesheet">
+    <script src={{ url_for('static', filename="js/bootstrap.min.js")}}></script>
+</head>
+<body>
+<div class="d-flex" id="wrapper">
+    <!-- sidebar -->
+    <div class="bg-light border-right" id="sidebar-wrapper">
+        <div class="sidebar-heading">Code Test</div>
+        <div class="list-group list-group-flush">
+            <a href="{{ url_for("course_list", id=cuser.id) }}" class="list-group-item list-group-item-action bg-light">Предметы</a>
+            <a href="{{ url_for("group_list", tid=cuser.id)}}" class="list-group-item list-group-item-action bg-light">Группы</a>
+            <a href="#" class="list-group-item list-group-item-action bg-light">Overview</a>
+            <a href="#" class="list-group-item list-group-item-action bg-light">Events</a>
+            <a href="#" class="list-group-item list-group-item-action bg-light">Profile</a>
+            <a href="{{ url_for("logout")}}" class="list-group-item list-group-item-action bg-light">Выйти</a>
+        </div>
+    </div>
+    <!-- end sidebar -->
+
+    <!-- content -->
+
+    <div id="page-content-wrapper">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-6">
+                    <h2 class="mt-4">Результат проверки попытки № {{ attempt.id }}</h2>
+					<h3 class="mt-4">Лабораторная работа {{ lab.title }}</h3>
+					<h3 class="mt-4">Вариант #{{ var.number }}</h3>
+					<h3 class="mt-4">Студент {{ student.fullname }}</h3>
+                    {% if res %}
+                    <p>Все тесты успешно пройдены!</p>
+                    {% else %}
+                        <p>В процессе проверки программы возникла следующая ошибка!</p>
+                    <p>Входные данные:</p>
+                        <pre><code>{{ error[0] }}</code></pre>
+                    <p>Ожидаемые выходные данные:</p>
+                        <pre><code>{{ error[1] }}</code></pre>
+                    <p>Данные возвращённые проограммой:</p>
+                        <pre><code>{{ error[2] }}</code></pre>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- end content -->
+
+    <!-- footer -->
+
+    <!-- end footer -->
+</div>
+</body>
+</html>

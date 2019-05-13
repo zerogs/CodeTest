@@ -9,6 +9,7 @@ from datetime import datetime
 from secrets import token_hex
 from csvhandler import csv_reader
 from flask import send_from_directory
+from script_check import script_check
 import os
 
 
@@ -282,12 +283,13 @@ def labs_list(id, cid):
 
     # labs = select(c.labs for c in Course if c.id == cid)
     labs = Course[cid].labs
-
+    labs = sorted(labs, key=lambda l: l.id)
     out = []
     for lab in labs:
         groups = [g for g in lab.groups]
         group_names = ', '.join(sorted([g.code for g in groups]))
         out.append((lab.id, lab.title, course.title, group_names))
+
 
     return render_template('teacher/labs.html',group_list=False, labs=out, teacher=teacher, course=course)
 
@@ -312,6 +314,7 @@ def lab_edit(tid, lid):
     for course in cquery:
         courses.append(course)
     form = request.form
+    missing = False
 
     if request.method == "POST" and 'update' in request.form:
         title = form.get('titleInput') or lab.title
@@ -319,22 +322,6 @@ def lab_edit(tid, lid):
 
         if 'Группа' in group_codes:
             group_codes.remove('Группа')
-        course_titles = form.getlist('course[]')
-        try:
-            course_titles.remove('Предмет')
-        except ValueError:
-            pass
-
-
-        missing = False
-        for c in lab.courses:
-            if c.title not in course_titles:
-                lab.courses.remove(c)
-        for c in course_titles:
-            crs = Course.get(title=c)
-            if crs not in lab.courses:
-                lab.courses.add(crs)
-
 
         for g in lg:
             if g.code not in group_codes:
@@ -342,23 +329,16 @@ def lab_edit(tid, lid):
         for code in group_codes:
             g = Group.get(code=code)
             if g not in lg:
-                for c in lab.courses:
-                    if g not in c.groups:
-                        missing = True
-                    else:
-                        missing = False
-                        break
-                if missing:
-                    flash('Группа ' + g.code + " не записана на один из курсов где используется лабораторная работа!",
-                          "warning")
-                    return render_template('teacher/lab-item.html', lab=lab, lg=lg, lc=lab.courses, courses=courses,
-                                           groups=groups, teacher=teacher)
-                else:
+                if g in lab.course.groups:
                     lab.groups.add(g)
+                else:
+                    flash("Группа " + g.code + " не записана на предмет!", "warning")
+                    return render_template('teacher/lab-item.html', lab=lab, lg=lg, courses=courses, groups=groups,
+                                           teacher=teacher)
 
         flash('Данные успешно обновлены!', 'success')
 
-    return render_template('teacher/lab-item.html', lab=lab, lg=lg, lc=lab.courses, courses=courses, groups=groups, teacher=teacher)
+    return render_template('teacher/lab-item.html', lab=lab, lg=lg, courses=courses, groups=groups, teacher=teacher)
 
 
 @app.route('/teacher-<id>/course-<cid>/lab-<lid>/delete', methods=['GET', 'POST'])
@@ -534,15 +514,64 @@ def variant_attempts(tid, cid, lid, vid):
 
     lab = Lab.get(id=lid)
     var = Variant.get(id=vid)
+    student = var.student
+    fio = student.fullname
     attempts = var.attempts
     attempts = sorted(attempts, key=lambda a: a.id)
-    students = []
-    for a in attempts:
-        students.append(Student.get(id=a.studentID))
-    out = zip(attempts, students)
 
 
-    return render_template('teacher/attempts.html', var=var, attempts=attempts, cuser=current_user, lab=lab)
+    return render_template('teacher/attempts.html', var=var, attempts=attempts, cuser=current_user, lab=lab, fio=fio,
+                           cid=cid)
+
+@app.route('/teacher-<tid>/course-<cid>/lab-<lid>/variant-<vid>/attempt-<aid>', methods=['GET', 'POST'])
+def attempt_info(tid, cid, lid, vid, aid):
+    if not authorized():
+        return redirect(url_for('login'))
+    teacher = User.get(id=tid)
+    if teacher.id != current_user.id:
+        return redirect(url_for('login'))
+
+    lab = Lab.get(id=lid)
+    var = Variant.get(id=vid)
+    attempt = Attempt.get(id=aid)
+    student = Student.get(id=attempt.studentID)
+    program = attempt.source
+
+    with open(program, "r") as fh:
+        code = fh.read()
+
+    return render_template('teacher/attempt-code.html', lab=lab, var=var, attempt=attempt, student=student, code=code,
+                           cuser=current_user)
+
+@app.route('/teacher-<tid>/course-<cid>/lab-<lid>/variant-<vid>/attempt-<aid>/check', methods=['GET', 'POST'])
+def attempt_check(tid, cid, lid, vid, aid):
+    if not authorized():
+        return redirect(url_for('login'))
+    teacher = User.get(id=tid)
+    if teacher.id != current_user.id:
+        return redirect(url_for('login'))
+
+    attempt = Attempt[aid]
+    lab = Lab[lid]
+    var = Variant[vid]
+    student = Student[attempt.studentID]
+    tests = var.tests
+    res = False
+
+    prg_path = attempt.source
+    lang = attempt.language
+    for test in tests:
+        out = script_check(prg_path, lang, test.input, test.output)
+        if out[0] != "Completed":
+            attempt.result = "Решение неверно!"
+            error = [test.input, test.output, out[1]]
+            return render_template('teacher/attempt-check.html', attempt=attempt, lab=lab, var=var, student=student,
+                                   error=error, cuser=current_user, res=res)
+    attempt.result = 'Решение верно!'
+    res = True
+
+    return render_template('teacher/attempt-check.html', attempt=attempt, lab=lab, var=var, student=student,
+                           cuser=current_user, res=res)
 
 @app.route('/teacher-<tid>/course-<cid>/lab-<lid>/create_variant/', methods=['GET', 'POST'])
 def create_variant(tid, cid, lid):
@@ -959,7 +988,8 @@ def student_lab_page(lid):
                 variant=var,
                 dt=datetime.now(),
                 source=os.path.join(os.getcwd(), app.config['UPLOAD_FOLDER'], student.group.code, str(student.id), str(lab.id), filename),
-                result="Не проверено"
+                result="Не проверено",
+                language="python"
             )
 
             return render_template('student/variant_info.html', var=var, lab=lab, attempts=attempts, cuser=current_user)

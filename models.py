@@ -60,6 +60,10 @@ class User(db.Entity):
     def check_password(self, given_password):
         return check_password_hash(self.password, given_password)
 
+    @property
+    def fullname(self):
+        return self.surname + ' ' + self.name[0] + '. ' + self.patronymic[0] + '.'
+
 
 class Student(User):
     variants = Set(Variant)
@@ -71,10 +75,6 @@ class Teacher(User):
     courses = Set('Course')
     faculty = Optional(str)
     department = Optional(str)
-
-    @property
-    def fullname(self):
-        return self.surname + ' ' + self.name[0] + '. ' + self.patronymic[0] + '.'
 
 
 class Attempt(db.Entity):

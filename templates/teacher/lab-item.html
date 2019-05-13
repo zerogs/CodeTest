@@ -34,7 +34,7 @@
         <div class="container-fluid">
             <div class="row">
                 <div class="col-6">
-                    <h1 class="mt-4">Редактирование лабораторной работы</h1>
+                    <h2 class="mt-4">Редактирование лабораторной работы предмета {{ lab.course.title }}</h2>
                     <form method="post" id="labEdit">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <div class="form-group">
@@ -52,33 +52,6 @@
                             </select>
                         </div>
                         {% endif %}
-                        <div id="course_selectors" class="form-group">
-                            <label for="courseInput">Предметы</label>
-                            {% for c in lc %}
-                            <div class="course-selector d-flex">
-                                <select id="courseInput" class="select-course custom-select mb-2" data-index="0" name="course[]">
-                                    <option selected>{{ c.title }}</option>
-                                    {% for c in courses %}
-                                    <option value="{{ c.title }}"> {{ c.title }}</option>
-                                    {% endfor %}
-                                </select>
-                                <i class="material-icons mt-2 ml-2 delete-course" style="color: red; cursor: pointer;">
-                                    clear
-                                </i>
-                            </div>
-                            {% endfor %}
-                            <div class="course-selector d-flex">
-                                <select id="courseInput" class="select-course custom-select mb-2" data-index="0" name="course[]">
-                                    <option selected>Предмет</option>
-                                    {% for c in courses %}
-                                    <option value="{{ c.title }}"> {{ c.title }}</option>
-                                    {% endfor %}
-                                </select>
-                                <i class="material-icons mt-2 ml-2 delete-course" style="color: red; cursor: pointer;">
-                                    clear
-                                </i>
-                            </div>
-                        </div>
                         <div id="group_selectors" class="form-group">
                             <label>Группы</label>
                             {% for g in lg %}

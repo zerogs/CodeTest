@@ -514,13 +514,15 @@ def variant_attempts(tid, cid, lid, vid):
 
     lab = Lab.get(id=lid)
     var = Variant.get(id=vid)
-    student = var.student
-    fio = student.fullname
     attempts = var.attempts
     attempts = sorted(attempts, key=lambda a: a.id)
+    table_data = []
+    for attempt in attempts:
+        student = Student[attempt.studentID]
+        table_data.append((attempt, student.group.code, student.fullname))
 
 
-    return render_template('teacher/attempts.html', var=var, attempts=attempts, cuser=current_user, lab=lab, fio=fio,
+    return render_template('teacher/attempts.html', var=var, table_data=table_data, cuser=current_user, lab=lab,
                            cid=cid)
 
 @app.route('/teacher-<tid>/course-<cid>/lab-<lid>/variant-<vid>/attempt-<aid>', methods=['GET', 'POST'])

@@ -2,7 +2,7 @@ from app import app, group_lists, ALLOWED_EXTENSIONS
 from flask import render_template, request, redirect, url_for, flash
 from flask_login import current_user, login_user, logout_user
 from models import db, Admin,User, Teacher, Student, Variant, Group, Attempt, Course, Lab, Test, generate_password_hash
-from pony.orm import select
+from pony.orm import select, desc
 from werkzeug.utils import secure_filename
 from werkzeug.datastructures import FileStorage
 from datetime import datetime
@@ -277,8 +277,9 @@ def labs_list(id, cid):
     if not authorized():
         return redirect(url_for('login'))
     teacher = Teacher.get(id=id)
-    if teacher.id != current_user.id and not Admin.get(id=current_user.id):
-        return redirect(url_for('login'))
+    course = Course[cid]
+    if course.teacher.id != current_user.id and not Admin.get(id=current_user.id):
+        return redirect(url_for('course_list', id=current_user.id))
 
     course = Course.get(id=cid)
 
@@ -392,8 +393,9 @@ def group_labs_list(id, cid, code):
     if not authorized():
         return redirect(url_for('login'))
     teacher = User.get(id=id)
-    if teacher.id != current_user.id:
-        return redirect(url_for('login'))
+    course = Course[cid]
+    if course.teacher.id != current_user.id and not Admin.get(id=current_user.id):
+        return redirect(url_for('course_list', id=current_user.id))
 
     group = Group.get(code=code)
     course = Course.get(id=cid)
@@ -525,6 +527,25 @@ def variant_attempts(tid, cid, lid, vid):
 
     return render_template('teacher/attempts.html', var=var, table_data=table_data, cuser=current_user, lab=lab,
                            cid=cid)
+
+
+@app.route('/teacher-<tid>/last_attempts', methods=['GET', 'POST'])
+def all_attempts(tid):
+    if not authorized():
+        return redirect(url_for('login'))
+    teacher = User.get(id=tid)
+    if teacher.id != current_user.id:
+        return redirect(url_for('login'))
+
+    attempts = select(a for a in Attempt if a.variant.lab.teacher == teacher).order_by(lambda a: desc(a.dt))[:20]
+    table_data = []
+    for attempt in attempts:
+        student = Student[attempt.studentID]
+        table_data.append((attempt, student.group.code, student.fullname, (attempt.variant.lab.id, attempt.variant.lab.title),
+                           (attempt.variant.lab.course.id, attempt.variant.lab.course.title), attempt.variant))
+
+    return render_template('teacher/all-attempts.html', table_data=table_data, cuser=current_user)
+
 
 @app.route('/teacher-<tid>/course-<cid>/lab-<lid>/variant-<vid>/attempt-<aid>', methods=['GET', 'POST'])
 def attempt_info(tid, cid, lid, vid, aid):
@@ -922,6 +943,9 @@ def logout():
 @app.route('/admin')
 def admin():
     if not authorized():
+        return redirect(url_for('login'))
+    admin = Admin.get(id=current_user.id)
+    if not admin:
         return redirect(url_for('login'))
     groups = select(g for g in Group)
     teachers = select(t for t in Teacher)

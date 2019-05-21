@@ -1,0 +1,85 @@
+<html>
+<head>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+            integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+            crossorigin="anonymous"></script>
+    <link rel="stylesheet" href={{ url_for('static', filename="css/bootstrap.min.css")}}>
+    <link rel="stylesheet" href={{ url_for('static', filename="css/styles.css")}}>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons"
+          rel="stylesheet">
+    <script src={{ url_for('static', filename="js/bootstrap.min.js")}}></script>
+</head>
+<body>
+<div class="d-flex" id="wrapper">
+    <!-- sidebar -->
+    <div class="bg-light border-right" id="sidebar-wrapper">
+        <div class="sidebar-heading">Code Test</div>
+        <div class="list-group list-group-flush">
+            <a href="{{ url_for("course_list", id=cuser.id) }}" class="list-group-item list-group-item-action bg-light">Предметы</a>
+            <a href="{{ url_for("group_list", tid=cuser.id)}}" class="list-group-item list-group-item-action bg-light">Группы</a>
+            <a href="#" class="list-group-item list-group-item-action bg-light">Overview</a>
+            <a href="#" class="list-group-item list-group-item-action bg-light">Events</a>
+            <a href="#" class="list-group-item list-group-item-action bg-light">Profile</a>
+            <a href="{{ url_for("logout")}}" class="list-group-item list-group-item-action bg-light">Выйти</a>
+            <a class="list-group-item bg-light">Вы вошли как {{ cuser.surname + " " + cuser.name + " " + cuser.patronymic }}</a>
+        </div>
+    </div>
+    <!-- end sidebar -->
+
+    <!-- content -->
+
+    <div id="page-content-wrapper">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-6">
+                    <h3  class="mt-4">Последние загруженные решения</h3>
+                    <table class="table text-center mt-4">
+                        <thead class="thead-dark">
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Результат</th>
+                            <th scope="col">Загружено</th>
+                            <th scope="col">Группа</th>
+                            <th scope="col">Студент</th>
+                            <th scope="col">Лаб.работа</th>
+                            <th scope="col">Предмет</th>
+                            <th scope="col"></th>
+                            <th scope="col"></th>
+                            <th scope="col"></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for data in table_data %}
+                        <tr>
+                            <th scope="row">{{ data[0].id }}</th>
+                            <td>{{ data[0].result }}</td>
+                            <td>{{ data[0].dt }}</td>
+                            <td>{{ data[1] }}</td>
+                            <td>{{ data[2] }}</td>
+                            <td>{{ data[3][1] }}</td>
+                            <td>{{ data[4][1] }}</td>
+                            <td><a href="{{ url_for("attempt_info", tid=cuser.id, cid=data[4][1], lid=data[3][0], vid=data[5].id, aid=data[0].id) }}">Программа</a></td>
+                            <td><a href="{{ url_for("attempt_check", tid=cuser.id, cid=data[4][1], lid=data[3][0], vid=data[5].id, aid=data[0].id) }}">Проверить</a></td>
+                            <td>
+                                <a href="#"><i class="material-icons">
+                                    delete
+                                </i></a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- end content -->
+
+    <!-- footer -->
+
+    <!-- end footer -->
+</div>
+</body>
+</html>

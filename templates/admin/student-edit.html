@@ -18,9 +18,9 @@
     <div class="bg-light border-right" id="sidebar-wrapper">
         <div class="sidebar-heading">Code Test</div>
         <div class="list-group list-group-flush">
-            <a href="{{ url_for("admin_course_list") }}" class="list-group-item list-group-item-action bg-light">Предметы</a>
-            <a href="{{ url_for("admin_group_list")}}" class="list-group-item list-group-item-action bg-light">Группы</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Profile</a>
+            <a href="{{ url_for("admin") }}" class="list-group-item list-group-item-action bg-light">Администрирование</a>
+            <a href="{{ url_for("create_teacher") }}" class="list-group-item list-group-item-action bg-light">Создать преподавателя</a>
+            <a href="{{ url_for("group_create") }}" class="list-group-item list-group-item-action bg-light">Создать группу</a>
             <a href="{{ url_for("logout")}}" class="list-group-item list-group-item-action bg-light">Выйти</a>
             <a class="list-group-item bg-light">Вы вошли как {{ cuser.surname + " " + cuser.name + " " + cuser.patronymic }}</a>
         </div>
@@ -62,9 +62,6 @@
                                         {% endif %}
                                     {% endfor %}
                                 </select>
-                                <i class="material-icons mt-2 ml-2 delete-course" style="color: red; cursor: pointer;">
-                                    clear
-                                </i>
                             </div>
                         </div>
                         <div class="form-group">

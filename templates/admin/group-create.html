@@ -18,12 +18,11 @@
     <div class="bg-light border-right" id="sidebar-wrapper">
         <div class="sidebar-heading">Code Test</div>
         <div class="list-group list-group-flush">
-            <a href="{{ url_for("course_list", id=teacher.id) }}" class="list-group-item list-group-item-action bg-light">Предметы</a>
-            <a href="{{ url_for("group_list", tid=teacher.id)}}" class="list-group-item list-group-item-action bg-light">Группы</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Overview</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Events</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Profile</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Status</a>
+            <a href="{{ url_for("admin") }}" class="list-group-item list-group-item-action bg-light">Администрирование</a>
+            <a href="{{ url_for("create_teacher") }}" class="list-group-item list-group-item-action bg-light">Создать преподавателя</a>
+            <a href="{{ url_for("admin_add_student") }}" class="list-group-item list-group-item-action bg-light">Создать студента</a>
+            <a href="{{ url_for("logout")}}" class="list-group-item list-group-item-action bg-light">Выйти</a>
+            <a class="list-group-item bg-light">Вы вошли как {{ cuser.surname + " " + cuser.name + " " + cuser.patronymic }}</a>
         </div>
     </div>
     <!-- end sidebar -->

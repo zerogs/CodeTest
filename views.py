@@ -10,6 +10,7 @@ from secrets import token_hex
 from csvhandler import csv_reader
 from flask import send_from_directory
 from script_check import script_check
+from shutil import rmtree
 import os
 
 
@@ -811,7 +812,7 @@ def group_create():
             )
         flash("Группа " + group_code + " успешно создана!", "success")
 
-    return render_template("admin/group-create.html", teacher=current_user)
+    return render_template("admin/group-create.html", cuser=current_user)
 
 
 @app.route('/teacher-<tid>/groups', methods=['GET', 'POST'] )
@@ -867,7 +868,7 @@ def login():
         if Student.get(id=current_user.id):
             return redirect(url_for('student_courses'))
         if current_user.is_admin:
-            return redirect(url_for('admin_course_list'))
+            return redirect(url_for('admin'))
 
     form = request.form
     if request.method == 'POST' and 'authForm' in request.form:
@@ -922,7 +923,9 @@ def logout():
 def admin():
     if not authorized():
         return redirect(url_for('login'))
-    return render_template('admin/index.html')
+    groups = select(g for g in Group)
+    teachers = select(t for t in Teacher)
+    return render_template('admin/index.html', groups=groups, teachers=teachers, cuser=current_user)
 
 
 @app.route('/student/courses', methods=['GET', 'POST'])
@@ -972,10 +975,16 @@ def student_lab_page(lid):
         return redirect(url_for('login'))
     lab = Lab.get(id=lid)
     var = Variant.get(student=student, lab=lab)
+    if var is None:
+        return redirect(url_for('student_course_labs', cid=lab.course.id))
     attempts = []
-    for attempt in var.attempts:
-        if attempt.studentID == student.id:
-            attempts.append(attempt)
+    if var.attempts is not None:
+        no_attempts = False
+        for attempt in var.attempts:
+            if attempt.studentID == student.id:
+                attempts.append(attempt)
+    else:
+        no_attempts = True
 
     if request.method == 'POST':
         file = request.files['programFile']
@@ -994,9 +1003,11 @@ def student_lab_page(lid):
                 language="python"
             )
 
-            return render_template('student/variant_info.html', var=var, lab=lab, attempts=attempts, cuser=current_user)
+            return render_template('student/variant_info.html', var=var, lab=lab, attempts=attempts, cuser=current_user,
+                                   no_attempts=no_attempts)
 
-    return render_template('student/variant_info.html', var=var, lab=lab, attempts=attempts, cuser=current_user)
+    return render_template('student/variant_info.html', var=var, lab=lab, attempts=attempts, cuser=current_user,
+                           no_attempts=no_attempts)
 
 
 @app.route('/uploads/<filename>')
@@ -1058,11 +1069,15 @@ def admin_delete_group(id):
     if not admin:
         return redirect(url_for('login'))
 
-    Group.get(id=id).delete()
+    group = Group.get(id=id)
+    if group.students is not None:
+        for student in group.students:
+            student_delete(student.id)
+    group.delete()
 
     return redirect(admin_group_list)
 
-#TODO student delete, deleting his attempts
+
 @app.route('/admin/group<code>/students', methods=['GET', 'POST'] )
 def admin_student_list(code):
     if not authorized():
@@ -1077,22 +1092,43 @@ def admin_student_list(code):
 
     return render_template('admin/students.html', group=group, students=students, cuser=current_user)
 
+def student_delete(id):
+    student = Student[id]
+    code = student.group.code
+    attempts = select(a for a in Attempt if a.studentID == id)
+    path = os.path.join(app.config['UPLOAD_FOLDER'], code, str(student.id))
+    rmtree(path)  # deleting lab folder and files included
+    for attempt in attempts:
+        attempt.delete()
+    student.delete()
 
-@app.route('/admin/group<code>/add_student', methods=['GET', 'POST'] )
-def admin_add_student(code):
+@app.route('/admin/student-<id>/delete')
+def admin_student_delete(id):
+    if not authorized():
+        return redirect(url_for('login'))
+    admin = Admin.get(id=current_user.id)
+    if not admin:
+        return redirect(url_for('login'))
+    code = Student[id].group.code
+    student_delete(id)
+
+    return redirect(url_for(admin_student_list, code=code))
+
+@app.route('/admin/add_student', methods=['GET', 'POST'] )
+def admin_add_student():
     if not authorized():
         return redirect(url_for('login'))
     admin = Admin.get(id=current_user.id)
     if not admin:
         return redirect(url_for('login'))
 
-    group = Group.get(code=code)
-
+    groups = select(g for g in Group)
     form = request.form
     if request.method == "POST" and 'update' in request.form:
         surname = form.get('surnameInput')
         name = form.get('nameInput')
         patronymic = form.get('patronymicInput')
+        group = Group.get(code=form.get('group'))
         reg_code = token_hex(7)
         s = Student(
             surname=surname,
@@ -1105,7 +1141,7 @@ def admin_add_student(code):
         flash('Студент успешно создан и добавлен в группу ' + group.code + '!' + " Регистрационный код " + reg_code +' .',
               'success')
 
-    return render_template('admin/add-student.html', group=group, cuser=current_user)
+    return render_template('admin/add-student.html', groups=groups, cuser=current_user)
 
 #TODO teacher delete, course copying to other teacher, or delete all connected data
 @app.route('/admin/teachers', methods=['GET', 'POST'])
@@ -1205,6 +1241,39 @@ def admin_teacher_edit(id):
 
 
     return render_template('admin/teacher-edit.html', teacher=teacher, cuser=current_user)
+
+
+@app.route('/admin/teacher<id>/delete', methods=['GET', 'POST'])
+def admin_teacher_delete(id):
+    if not authorized():
+        return redirect(url_for('login'))
+    admin = Admin.get(id=current_user.id)
+    if not admin:
+        return redirect(url_for('login'))
+
+    teacher = Teacher[id]
+    teachers = select(t for t in Teacher if t != teacher)[:]
+
+    if request.method == "POST" and 'delete_all' in request.form:
+        attempts = select(a for a in Attempt if a.variant.lab.teacher == teacher)[:]
+        for attempt in attempts:
+            path = os.path.dirname(attempt.source)
+            rmtree(path)
+        teacher.delete()
+        return redirect(url_for('admin'))
+
+    if request.method == "POST" and 'delete_and_copy' in request.form:
+        new_teacher = Teacher[request.form.get('teacher')]
+        courses = select(c for c in Course if c.teacher == teacher)[:]
+        labs = select(l for l in Lab if l.teacher == teacher)[:]
+        for course in courses:
+            course.teacher = new_teacher
+        for lab in labs:
+            lab.teacher = new_teacher
+        teacher.delete()
+        return redirect(url_for('admin'))
+
+    return render_template('admin/teacher-delete.html', teachers=teachers, current_teacher=teacher, cuser=current_user)
 
 
 @app.route('/admin/student<id>/edit', methods=['GET', 'POST'])

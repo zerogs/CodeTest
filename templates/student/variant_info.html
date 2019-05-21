@@ -51,6 +51,7 @@
 
                         <button type="submit" name="downloadProgram" class="btn btn-primary">Загрузить</button>
                     </form>
+                    {% if not no_attempts %}
                     <table class="table text-center mt-4">
                         <thead class="thead-dark">
                         <tr>
@@ -59,14 +60,17 @@
                         </tr>
                         </thead>
                         <tbody>
-                        {% for a in attempts %}
-                            <tr>
-                                <th scope="row">{{ a.dt }}</th>
-                                <td>{{ a.result }}</td>
-                                </tr>
-                        {% endfor %}
+                            {% for a in attempts %}
+                                <tr>
+                                    <th scope="row">{{ a.dt }}</th>
+                                    <td>{{ a.result }}</td>
+                                    </tr>
+                            {% endfor %}
                         </tbody>
                     </table>
+                    {% else %}
+                    <h2>Нет загруженных попыток!</h2>
+                    {% endif %}
                     {% with messages = get_flashed_messages(with_categories=true) %}
                       <!-- Categories: success (green), info (blue), warning (yellow), danger (red) -->
                       {% if messages %}

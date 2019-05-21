@@ -18,9 +18,9 @@
     <div class="bg-light border-right" id="sidebar-wrapper">
         <div class="sidebar-heading">Code Test</div>
         <div class="list-group list-group-flush">
-            <a href="{{ url_for("admin_course_list") }}" class="list-group-item list-group-item-action bg-light">Предметы</a>
-            <a href="{{ url_for("admin_group_list")}}" class="list-group-item list-group-item-action bg-light">Группы</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Profile</a>
+            <a href="{{ url_for("admin") }}" class="list-group-item list-group-item-action bg-light">Администрирование</a>
+            <a href="{{ url_for("create_teacher") }}" class="list-group-item list-group-item-action bg-light">Создать преподавателя</a>
+            <a href="{{ url_for("group_create") }}" class="list-group-item list-group-item-action bg-light">Создать группу</a>
             <a href="{{ url_for("logout")}}" class="list-group-item list-group-item-action bg-light">Выйти</a>
             <a class="list-group-item bg-light">Вы вошли как {{ cuser.surname + " " + cuser.name + " " + cuser.patronymic }}</a>
         </div>
@@ -33,7 +33,7 @@
         <div class="container-fluid">
             <div class="row">
                 <div class="col-6">
-                    <h1 class="mt-4">Студенты группы {{ group.code }} <button type="submit" onClick="window.location.replace('{{ url_for("admin_add_student", code=group.code) }}')" class="btn btn-primary">Добавить</button></h1>
+                    <h1 class="mt-4">Студенты группы {{ group.code }} <button type="submit" onClick="window.location.replace('{{ url_for("admin_add_student") }}')" class="btn btn-primary">Добавить</button></h1>
 
                     <table class="table text-center mt-4">
                         <thead class="thead-dark">
@@ -56,7 +56,7 @@
                                 <a href="{{ url_for('admin_student_edit', id=student.id) }}"><i class="material-icons">
                                         create
                                 </i></a>
-                                <a href="#"><i class="material-icons">
+                                <a href="/"onClick="setId({{ student.id }}, '{{ student.fullname }}'); return false" data-toggle="modal" data-target="#deleteModal"><i class="material-icons">
                                     delete
                                 </i></a>
                             </td>
@@ -72,6 +72,25 @@
                 </div>
             </div>
         </div>
+        <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+          <div class="modal-dialog" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Удаление записи</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="modal-body">
+                Вы действительно хотите удалить запись?
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="sendRequest(); return false;">Подтвердить</button>
+              </div>
+            </div>
+          </div>
+        </div>
     </div>
 
     <!-- end content -->
@@ -81,4 +100,18 @@
     <!-- end footer -->
 </div>
 </body>
+<script type="application/javascript">
+    var current_id = 0;
+    function setId(id, fullname)
+    {
+        current_id = id;
+        $(".modal-body").html('Вы действительно хотите удалить студента ' + fullname + '?');
+    }
+    function sendRequest() {
+        $.get("/admin/student-" + current_id + "/delete", () => {
+           $("#deleteModal").modal('hide');
+        window.location.reload();
+        });
+    }
+</script>
 </html>

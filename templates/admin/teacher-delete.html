@@ -1,6 +1,8 @@
 <html>
 <head>
-    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+            integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+            crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
             integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
             crossorigin="anonymous"></script>
@@ -29,32 +31,25 @@
         <div class="container-fluid">
             <div class="row">
                 <div class="col-6">
-                    <h1 class="mt-4">Добавление нового студента в группу </h1>
-                    <form method="post" id="createStud">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <h1 class="mt-4">Удаление данных преподавателя {{ current_teacher.fullname }}</h1>
+					<p>Для сохранения существующих данных связанных с преподавателем, выберите преподавателя с которым
+                    необходимо связать данные. В противном случае нажмите кнопку "Удалить!", все связанные с удаляемым
+                    преподователем данные будут утеряны!</p>
+                    <form method="post" id="update">
                         <div class="form-group">
-                            <label for="surnameInput">Фамилия</label>
-                            <input type="text" name="surnameInput" id="surnameInput" class="form-control" placeholder="Фамилия">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <label for="groupInput">Преподаватель</label>
+                            <select class="select-group custom-select mb-2" data-index="0" name="teacher">
+                                <option selected>Преподаватель</option>
+                                {% for teacher in teachers %}
+                                <option value={{ teacher.id }}> {{ teacher.fullname }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
-                        <div class="form-group">
-                            <label for="nameInput">Имя</label>
-                            <input type="text" name="nameInput" id="nameInput" class="form-control" placeholder="Имя">
-                        </div>
-                        <div class="form-group">
-                            <label for="patronymicInput">Отчество</label>
-                            <input type="text" name="patronymicInput" id="patronymicInput" class="form-control" placeholder="Отчество">
-                        </div>
-                        <div class="form-group">
-                                <label for="groupInput">Группа</label>
-                                <select class="select-group custom-select mb-2" data-index="0" name="group">
-                                    <option selected>Группа</option>
-                                    {% for group in groups %}
-                                    <option value={{ group.code }}> {{ group.code }}</option>
-                                    {% endfor %}
-                                </select>
-                        </div>
-                        <button type="submit" name="update" class="btn btn-primary">Добавить</button>
+                        <button type="submit" name="delete_all" class="btn btn-primary">Удалить!</button>
+                        <button type="submit" name="delete_and_copy"  class="btn btn-primary">Перенести данные и удалить!</button>
                     </form>
+
                     {% with messages = get_flashed_messages(with_categories=true) %}
                       <!-- Categories: success (green), info (blue), warning (yellow), danger (red) -->
                       {% if messages %}

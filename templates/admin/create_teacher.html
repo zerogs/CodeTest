@@ -16,14 +16,13 @@
 <div class="d-flex" id="wrapper">
     <!-- sidebar -->
     <div class="bg-light border-right" id="sidebar-wrapper">
-        <div class="sidebar-heading">Ванек не толстый (c)</div>
+        <div class="sidebar-heading">Code Test</div>
         <div class="list-group list-group-flush">
-            <a href="#" class="list-group-item list-group-item-action bg-light">Dashboard</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Shortcuts</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Overview</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Events</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Profile</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Status</a>
+            <a href="{{ url_for("admin") }}" class="list-group-item list-group-item-action bg-light">Администрирование</a>
+            <a href="{{ url_for("group_create") }}" class="list-group-item list-group-item-action bg-light">Создать группу</a>
+            <a href="{{ url_for("admin_add_student") }}" class="list-group-item list-group-item-action bg-light">Создать студента</a>
+            <a href="{{ url_for("logout")}}" class="list-group-item list-group-item-action bg-light">Выйти</a>
+            <a class="list-group-item bg-light">Вы вошли как {{ cuser.surname + " " + cuser.name + " " + cuser.patronymic }}</a>
         </div>
     </div>
     <!-- end sidebar -->
@@ -52,26 +51,10 @@
                         <div class="form-group">
                             <label for="facultyInput">Факультет</label>
                             <input type="text" name="facultyInput" class="form-control" placeholder="Факультет">
-                            <!--
-                            <select class="custom-select">
-                                <option selected>Факультет</option>
-                                <option value="1">One</option>
-                                <option value="2">Two</option>
-                                <option value="3">Three</option>
-                            </select>
-                            -->
                         </div>
                         <div class="form-group">
                             <label for="departmentInput">Кафедра</label>
                             <input type="text" name="departmentInput" class="form-control" placeholder="Кафедра">
-                            <!--
-                            <select class="custom-select">
-                                <option selected>Кафедра</option>
-                                <option value="1">One</option>
-                                <option value="2">Two</option>
-                                <option value="3">Three</option>
-                            </select>
-                            -->
                         </div>
                         <div class="form-group">
                             <label for="emailInput">E-mail</label>
@@ -81,6 +64,7 @@
                             <label for="regcodeInput">Регистрационный код *</label>
                             <input type="text" name="regcodeInput" class="form-control" placeholder={{ reg_code }}>
                         </div>
+                        <p>Символом "*" отмечены обязательные поля!</p>
                         <button type="submit" name="createTeacherForm" class="btn btn-primary">Создать</button>
                     </form>
                     {% with messages = get_flashed_messages(with_categories=true) %}

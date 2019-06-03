@@ -18,12 +18,11 @@
     <div class="bg-light border-right" id="sidebar-wrapper">
         <div class="sidebar-heading">Code Test</div>
         <div class="list-group list-group-flush">
-            <a href="{{ url_for("course_list", id=cuser.id) }}" class="list-group-item list-group-item-action bg-light">Предметы</a>
-            <a href="{{ url_for("group_list", tid=cuser.id)}}" class="list-group-item list-group-item-action bg-light">Группы</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Overview</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Events</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Profile</a>
+            <a href="{{ url_for("course_list", id=teacher.id) }}" class="list-group-item list-group-item-action bg-light">Предметы</a>
+            <a href="{{ url_for("group_list", tid=teacher.id)}}" class="list-group-item list-group-item-action bg-light">Группы</a>
+            <a href="{{ url_for("all_attempts", tid=teacher.id) }}" class="list-group-item list-group-item-action bg-light">Решения</a>
             <a href="{{ url_for("logout")}}" class="list-group-item list-group-item-action bg-light">Выйти</a>
+            <a class="list-group-item bg-light">Вы вошли как {{ cuser.surname + " " + cuser.name + " " + cuser.patronymic }}</a>
         </div>
     </div>
     <!-- end sidebar -->
@@ -35,18 +34,19 @@
             <div class="row">
                 <div class="col-6">
                     <h2 class="mt-4">Результат проверки попытки № {{ attempt.id }}</h2>
-					<h3 class="mt-4">Лабораторная работа {{ lab.title }}</h3>
+					<h3 class="mt-4">Лабораторная работа: {{ lab.title }}</h3>
 					<h3 class="mt-4">Вариант #{{ var.number }}</h3>
-					<h3 class="mt-4">Студент {{ student.fullname }}</h3>
+					<h3 class="mt-4">Студент: {{ student.fullname }}</h3>
                     {% if res %}
                     <p>Все тесты успешно пройдены!</p>
                     {% else %}
+                        <strong>ID теста: {{ error[5] }}. Тестов пройдено {{ error[3] }} из {{ error[4] }}.</strong>
                         <p>В процессе проверки программы возникла следующая ошибка!</p>
                     <p>Входные данные:</p>
                         <pre><code>{{ error[0] }}</code></pre>
                     <p>Ожидаемые выходные данные:</p>
                         <pre><code>{{ error[1] }}</code></pre>
-                    <p>Данные возвращённые проограммой:</p>
+                    <p>Данные возвращённые программой:</p>
                         <pre><code>{{ error[2] }}</code></pre>
                     {% endif %}
                 </div>

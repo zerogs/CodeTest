@@ -20,6 +20,7 @@
             <a href="{{ url_for("group_list", tid=teacher.id)}}" class="list-group-item list-group-item-action bg-light">Группы</a>
             <a href="{{ url_for("all_attempts", tid=teacher.id) }}" class="list-group-item list-group-item-action bg-light">Решения</a>
             <a href="{{ url_for("logout")}}" class="list-group-item list-group-item-action bg-light">Выйти</a>
+            <a class="list-group-item bg-light">Вы вошли как {{ cuser.surname + " " + cuser.name + " " + cuser.patronymic }}</a>
         </div>
     </div>
     <!-- end sidebar -->
@@ -61,11 +62,6 @@
                         {% endfor %}
                         </tbody>
                     </table>
-                    <div class="float-right text-right">
-                        <span class="d-block mb-2">Страница 1 из 1</span>
-                        <button type="button" class="btn btn-primary" disabled>Предыдущая</button>
-                        <button type="button" class="btn btn-primary">Следующая</button>
-                    </div>
                 </div>
             </div>
         </div>

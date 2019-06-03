@@ -11,6 +11,7 @@ from csvhandler import csv_reader
 from flask import send_from_directory
 from script_check import script_check
 from shutil import rmtree
+from pathlib import Path
 import os
 
 
@@ -80,8 +81,6 @@ def create_course(tid):
     show = isinstance(current_user, Admin)
 
     groups = select(group.code for group in Group)[:]
-    # for group in query:
-    #     groups.append(group)
 
     form = request.form
     if request.method == 'POST' and 'create' in request.form:
@@ -108,7 +107,7 @@ def create_course(tid):
 
         flash("Предмет создан!", "success")
 
-    return render_template('teacher/course-creation.html', show=show, groups=groups, teacher=teacher)
+    return render_template('teacher/course-creation.html', show=show, groups=groups, teacher=teacher, cuser=current_user)
 
 
 @app.route('/teacher-<teacherid>/course_edit/<courseid>', methods=['GET', 'POST'])
@@ -188,7 +187,7 @@ def course_edit(courseid, teacherid):
         return redirect(url_for('course_list', id=teacherid))
 
     return render_template('teacher/course-item.html',teacher=teacher, show=show, course=course, groups=groups, cg=cg,
-                           teachers=teachers)
+                           teachers=teachers, cuser=current_user)
 
 @app.route('/teacher-<id>/courses/', methods=['GET', 'POST'])
 def course_list(id):
@@ -201,7 +200,7 @@ def course_list(id):
         s = ' '.join(g.code for g in sorted(course.groups, key=lambda g: g.code))
         out.append((course.id, course.title, s))
 
-    return render_template('teacher/courses.html', courses=out, teacher=teacher)
+    return render_template('teacher/courses.html', courses=out, teacher=teacher, cuser=current_user)
 
 
 @app.route('/teacher-<id>/course_delete/<cid>', methods=['GET', 'POST'])
@@ -210,8 +209,6 @@ def course_delete(id, cid):
         if current_user.id != int(id):
             return redirect(url_for("login"))
     Course[cid].delete()
-    # course = Course.get(id=cid)
-    # course.delete()
 
     return redirect(url_for('course_list', id=id))
 
@@ -269,7 +266,7 @@ def create_lab(id):
         flash("Лабораторная работа " + title + " создана!", "success")
 
     return render_template('teacher/lab-creation.html',teacher=teacher, show=show, courses=allcourses, groups=allgroups,
-                           teacherFio=teacherFio)
+                           teacherFio=teacherFio, cuser=current_user)
 
 
 @app.route('/teacher-<id>/course-<cid>/labs', methods=['GET', 'POST'])
@@ -292,8 +289,8 @@ def labs_list(id, cid):
         group_names = ', '.join(sorted([g.code for g in groups]))
         out.append((lab.id, lab.title, course.title, group_names))
 
-
-    return render_template('teacher/labs.html',group_list=False, labs=out, teacher=teacher, course=course)
+    return render_template('teacher/labs.html',group_list=False, labs=out, teacher=teacher, course=course,
+                           cuser=current_user)
 
 
 @app.route('/teacher-<tid>/lab-<lid>/edit', methods=['GET', 'POST'])
@@ -340,7 +337,8 @@ def lab_edit(tid, lid):
 
         flash('Данные успешно обновлены!', 'success')
 
-    return render_template('teacher/lab-item.html', lab=lab, lg=lg, courses=courses, groups=groups, teacher=teacher)
+    return render_template('teacher/lab-item.html', lab=lab, lg=lg, courses=courses, groups=groups, teacher=teacher,
+                           cuser=current_user)
 
 
 @app.route('/teacher-<id>/course-<cid>/lab-<lid>/delete', methods=['GET', 'POST'])
@@ -385,7 +383,7 @@ def add_existing_lab(id, cid):
 
         return redirect(url_for('labs_list', id=teacher.id, cid=course.id))
 
-    return render_template('teacher/lab-add-to-course.html', labs=labs, teacher=teacher)
+    return render_template('teacher/lab-add-to-course.html', labs=labs, teacher=teacher, cuser=current_user)
 
 @app.route('/teacher-<id>/group<code>/course-<cid>/labs', methods=['GET', 'POST'])
 def group_labs_list(id, cid, code):
@@ -409,7 +407,8 @@ def group_labs_list(id, cid, code):
         out.append((lab.id, lab.title, sc, s))
         s = ''
 
-    return render_template('teacher/labs.html',group_list=group_list,group=group, labs=out, teacher=teacher, course=course)
+    return render_template('teacher/labs.html',group_list=group_list,group=group, labs=out, teacher=teacher, course=course,
+                           cuser=current_user)
 
 
 @app.route('/teacher-<id>/group<code>/course-<cid>/lab-<lid>/delete', methods=['GET', 'POST'])
@@ -475,7 +474,7 @@ def dist_vars(id, code, cid, lid):
         if len(equalvars) != 0:
             flash('Один и тот же вариант выдан нескольким студентам!', 'warning')
             return render_template('teacher/variant-dist.html', lab=lab, group=group, course=course, students=studvars,
-                                   vars=vars, teacher=teacher)
+                                   vars=vars, teacher=teacher, cuser=current_user)
 
         for item in variants:
             if item != '#':
@@ -487,7 +486,8 @@ def dist_vars(id, code, cid, lid):
         flash("Данные успешно обновлены!", "success")
 
 
-    return render_template('teacher/variant-dist.html',lab=lab, group=group, course=course, students=studvars, vars=vars, teacher=teacher)
+    return render_template('teacher/variant-dist.html',lab=lab, group=group, course=course, students=studvars, vars=vars,
+                           teacher=teacher, cuser=current_user)
 
 
 @app.route('/teacher-<tid>/course-<cid>/lab-<lid>/variants/', methods=['GET', 'POST'])
@@ -518,7 +518,7 @@ def variant_attempts(tid, cid, lid, vid):
     lab = Lab.get(id=lid)
     var = Variant.get(id=vid)
     attempts = var.attempts
-    attempts = sorted(attempts, key=lambda a: a.id)
+    attempts = sorted(attempts, key=lambda a: a.dt, reverse=True)
     table_data = []
     for attempt in attempts:
         student = Student[attempt.studentID]
@@ -526,7 +526,7 @@ def variant_attempts(tid, cid, lid, vid):
 
 
     return render_template('teacher/attempts.html', var=var, table_data=table_data, cuser=current_user, lab=lab,
-                           cid=cid)
+                           cid=cid, teacher=teacher)
 
 
 @app.route('/teacher-<tid>/last_attempts', methods=['GET', 'POST'])
@@ -544,8 +544,25 @@ def all_attempts(tid):
         table_data.append((attempt, student.group.code, student.fullname, (attempt.variant.lab.id, attempt.variant.lab.title),
                            (attempt.variant.lab.course.id, attempt.variant.lab.course.title), attempt.variant))
 
-    return render_template('teacher/all-attempts.html', table_data=table_data, cuser=current_user)
+    return render_template('teacher/all-attempts.html',teacher=teacher, table_data=table_data, cuser=current_user)
 
+
+@app.route('/teacher-<tid>/course-<cid>/lab-<lid>/variant-<vid>/attempt-<aid>/delete')
+def attempt_delete(tid, cid, lid, vid, aid):
+    if not authorized():
+        return redirect(url_for('login'))
+    teacher = User.get(id=tid)
+    if teacher.id != current_user.id:
+        return redirect(url_for('login'))
+    course = Course[cid]
+    attempt = Attempt[aid]
+    if course in teacher.courses:
+        path = Path(attempt.source)
+        if path.is_file():
+            os.remove(attempt.source)
+        attempt.delete()
+
+    return redirect(url_for("variant_attempts", tid=tid, cid=cid, lid=lid, vid=vid))
 
 @app.route('/teacher-<tid>/course-<cid>/lab-<lid>/variant-<vid>/attempt-<aid>', methods=['GET', 'POST'])
 def attempt_info(tid, cid, lid, vid, aid):
@@ -565,7 +582,8 @@ def attempt_info(tid, cid, lid, vid, aid):
         code = fh.read()
 
     return render_template('teacher/attempt-code.html', lab=lab, var=var, attempt=attempt, student=student, code=code,
-                           cuser=current_user)
+                           cuser=current_user, teacher=teacher)
+
 
 @app.route('/teacher-<tid>/course-<cid>/lab-<lid>/variant-<vid>/attempt-<aid>/check', methods=['GET', 'POST'])
 def attempt_check(tid, cid, lid, vid, aid):
@@ -584,18 +602,20 @@ def attempt_check(tid, cid, lid, vid, aid):
 
     prg_path = attempt.source
     lang = attempt.language
+    counter = 0
     for test in tests:
+        counter += 1
         out = script_check(prg_path, lang, test.input, test.output)
         if out[0] != "Completed":
             attempt.result = "Решение неверно!"
-            error = [test.input, test.output, out[1]]
+            error = [test.input, test.output, out[1], counter, len(tests), test.id]
             return render_template('teacher/attempt-check.html', attempt=attempt, lab=lab, var=var, student=student,
-                                   error=error, cuser=current_user, res=res)
+                                   error=error, cuser=current_user, res=res, teacher=teacher)
     attempt.result = 'Решение верно!'
     res = True
 
     return render_template('teacher/attempt-check.html', attempt=attempt, lab=lab, var=var, student=student,
-                           cuser=current_user, res=res)
+                           cuser=current_user, res=res, teacher=teacher)
 
 @app.route('/teacher-<tid>/course-<cid>/lab-<lid>/create_variant/', methods=['GET', 'POST'])
 def create_variant(tid, cid, lid):
@@ -624,19 +644,24 @@ def create_variant(tid, cid, lid):
         for sym in number:
             if not sym.isdigit():
                 flash('Поле номера варианта содержит символы! Номер может быть только числом!', 'warning')
-                return render_template('teacher/variant-creation.html', lab=lab, data=data, teacher=teacher)
+                return render_template('teacher/variant-creation.html', lab=lab, data=data, teacher=teacher,
+                                       cuser=current_user)
         if Variant.get(number=number, lab=lab):
             flash('Вариант с введённым номером уже существует!', 'warning')
-            return render_template('teacher/variant-creation.html', lab=lab, data=data, teacher=teacher)
+            return render_template('teacher/variant-creation.html', lab=lab, data=data, teacher=teacher,
+                                   cuser=current_user)
         if number == '':
             flash('Не задан номер варианта!', 'warning')
-            return render_template('teacher/variant-creation.html', lab=lab, data=data, teacher=teacher)
+            return render_template('teacher/variant-creation.html', lab=lab, data=data, teacher=teacher,
+                                   cuser=current_user)
         if title == '':
             flash('Не указано название варианта!', 'warning')
-            return render_template('teacher/variant-creation.html', lab=lab, data=data, teacher=teacher)
+            return render_template('teacher/variant-creation.html', lab=lab, data=data, teacher=teacher,
+                                   cuser=current_user)
         if description == '':
             flash('Не указано описания варианта!', 'warning')
-            return render_template('teacher/variant-creation.html', lab=lab, data=data, teacher=teacher)
+            return render_template('teacher/variant-creation.html', lab=lab, data=data, teacher=teacher,
+                                   cuser=current_user)
 
         if studentid == 'Студент':
             v = Variant(
@@ -655,7 +680,7 @@ def create_variant(tid, cid, lid):
             )
         flash('Вариант задания для лабораторной работы успешно создан!', "success")
 
-    return render_template('teacher/variant-creation.html', lab=lab, data=data, teacher=teacher)
+    return render_template('teacher/variant-creation.html', lab=lab, data=data, teacher=teacher, cuser=current_user)
 
 
 @app.route('/teacher-<tid>/course-<cid>/lab-<lid>/variant-<vid>/edit', methods=['GET', 'POST'])
@@ -675,6 +700,23 @@ def variant_edit(tid, cid, lid, vid):
         title = form.get('nameInput')
         desc = form.get('descriptionInput')
 
+        for sym in number:
+            if not sym.isdigit():
+                flash('Поле номера варианта содержит символы! Номер может быть только числом!', 'warning')
+                return render_template('teacher/variant-item.html', teacher=teacher, lab=lab, var=var,
+                                       cuser=current_user)
+        if Variant.get(number=number, lab=lab):
+            flash('Вариант с введённым номером уже существует!', 'warning')
+            return render_template('teacher/variant-item.html', teacher=teacher, lab=lab, var=var, cuser=current_user)
+        if number == '':
+            flash('Не задан номер варианта!', 'warning')
+            return render_template('teacher/variant-item.html', teacher=teacher, lab=lab, var=var, cuser=current_user)
+        if title == '':
+            flash('Не указано название варианта!', 'warning')
+            return render_template('teacher/variant-item.html', teacher=teacher, lab=lab, var=var, cuser=current_user)
+        if desc == '':
+            flash('Не указано описания варианта!', 'warning')
+            return render_template('teacher/variant-item.html', teacher=teacher, lab=lab, var=var, cuser=current_user)
         if number == '':
             number = var.number
         if title == '':
@@ -688,7 +730,7 @@ def variant_edit(tid, cid, lid, vid):
 
         flash('Данные варианта обновлены успешно!', 'success')
 
-    return render_template('teacher/variant-item.html', teacher=teacher, lab=lab, var=var)
+    return render_template('teacher/variant-item.html', teacher=teacher, lab=lab, var=var, cuser=current_user)
 
 
 @app.route('/teacher-<tid>/course-<cid>/lab-<lid>/variant-<vid>/delete', methods=['GET', 'POST'])
@@ -712,7 +754,7 @@ def test_list(tid, cid, lid, vid,):
     lab = Lab.get(id=lid)
     var = Variant.get(id=vid)
 
-    return render_template('teacher/tests.html',cid=cid, teacher=teacher, lab=lab, var=var)
+    return render_template('teacher/tests.html',cid=cid, teacher=teacher, lab=lab, var=var,cuser=current_user)
 
 
 @app.route('/teacher-<tid>/lab-<lid>/variant-<vid>/create_test', methods=['GET', 'POST'])
@@ -745,7 +787,7 @@ def create_test(tid, lid, vid):
         )
         flash('Тест для варианта ' + str(var.number) +' успешно создан!', 'success')
 
-    return render_template('teacher/test-creation.html', teacher=teacher, lab=lab, var=var)
+    return render_template('teacher/test-creation.html', teacher=teacher, lab=lab, var=var,cuser=current_user)
 
 @app.route('/teacher-<tid>/lab-<lid>/variant-<vid>/test-<tsid>/edit', methods=['GET', 'POST'])
 def test_edit(tid, lid, vid, tsid):
@@ -774,7 +816,7 @@ def test_edit(tid, lid, vid, tsid):
 
         flash('Данные теста успешно обновлены!', 'success')
 
-    return render_template('teacher/test-item.html', teacher=teacher, lab=lab, var=var, test=test)
+    return render_template('teacher/test-item.html', teacher=teacher, lab=lab, var=var, test=test,cuser=current_user)
 
 
 @app.route('/teacher-<tid>/course-<cid>/lab-<lid>/variant-<vid>/test-<tsid>/delete', methods=['GET', 'POST'])
@@ -787,9 +829,12 @@ def test_delete(tid, cid, lid, vid, tsid):
     return redirect(url_for('test_list', tid=tid, cid=cid, lid=lid, vid=vid))
 
 
-@app.route('/group_create/', methods=['GET', 'POST'])
+@app.route('/admin/group_create/', methods=['GET', 'POST'])
 def group_create():
     if not authorized():
+        return redirect(url_for('login'))
+    admin = Admin.get(id=current_user.id)
+    if not admin:
         return redirect(url_for('login'))
 
     form = request.form
@@ -799,23 +844,23 @@ def group_create():
 
         if group_code == '':
             flash("Укажите название группы!", "warning")
-            return render_template("admin/group-create.html", teacher=current_user)
+            return render_template("admin/group-create.html", cuser=current_user)
 
         if Group.get(code=group_code) is None:
             pass
         else:
             flash("Группа с таким номером уже существует!", "danger")
-            return render_template("admin/group-create.html", teacher=current_user)
+            return render_template("admin/group-create.html", cuser=current_user)
 
         try:
             with open(filename) as obj:
                 lst = csv_reader(obj)
         except IOError:
             flash("Ошибка чтения файла!", "danger")
-            return render_template("admin/group-create.html", teacher=current_user)
+            return render_template("admin/group-create.html", cuser=current_user)
         except KeyError:
             flash("Неверная структура файла!", "danger")
-            return render_template("admin/group-create.html", teacher=current_user)
+            return render_template("admin/group-create.html", cuser=current_user)
 
         g = Group(
             code=group_code
@@ -854,14 +899,15 @@ def group_list(tid):
     cs = []
     for group in groups:
         for course in group.courses:
-            cs.append((course.title, course.id))
+            if course in teacher.courses:
+                cs.append((course.title, course.id))
         cs = sorted(cs)
         out.append((group.id, group.code, cs))
         cs = []
 
     out = sorted(out)
 
-    return render_template('teacher/groups.html', teacher=teacher, groups=out)
+    return render_template('teacher/groups.html', teacher=teacher, groups=out, cuser=current_user)
 
 
 @app.route('/group-<gid>/students', methods=['GET', 'POST'])
@@ -1007,28 +1053,46 @@ def student_lab_page(lid):
         for attempt in var.attempts:
             if attempt.studentID == student.id:
                 attempts.append(attempt)
+        attempts = sorted(attempts, key=lambda a: a.dt, reverse=True)
     else:
         no_attempts = True
 
-    if request.method == 'POST':
+    if request.method == 'POST' and 'downloadProgram' in request.form:
         file = request.files['programFile']
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
             path = os.path.join(app.config['UPLOAD_FOLDER'], student.group.code, str(student.id), str(lab.id))
-            if not os.path.exists(path):
-                os.makedirs(path)
+            program = Path(path + '/' + filename)
+            if program.is_file():
+                filename = datetime.now().strftime('%Y-%m-%d-%H-%M-%S') + filename
             file.save(os.path.join(os.getcwd(), path, filename))
             a = Attempt(
                 studentID=student.id,
                 variant=var,
-                dt=datetime.now(),
-                source=os.path.join(os.getcwd(), app.config['UPLOAD_FOLDER'], student.group.code, str(student.id), str(lab.id), filename),
+                dt=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                source=os.path.join(os.getcwd(), app.config['UPLOAD_FOLDER'], student.group.code, str(student.id),
+                                    str(lab.id), filename),
                 result="Не проверено",
                 language="python"
             )
 
-            return render_template('student/variant_info.html', var=var, lab=lab, attempts=attempts, cuser=current_user,
-                                   no_attempts=no_attempts)
+            attempt = a
+            lab = Lab[lid]
+            prg_path = attempt.source
+            lang = attempt.language
+            counter = 0
+            for test in var.tests:
+                counter += 1
+                out = script_check(prg_path, lang, test.input, test.output)
+                if out[0] != "Completed":
+                    attempt.result = "Решение неверно!"
+                    error = [test.input, test.output, out[1], counter, len(var.tests), test.id]
+                    return render_template('student/variant_info.html', var=var, lab=lab, attempts=attempts,
+                                           cuser=current_user,
+                                           no_attempts=no_attempts)
+
+            attempt.result = 'Решение верно!'
+            res = True
 
     return render_template('student/variant_info.html', var=var, lab=lab, attempts=attempts, cuser=current_user,
                            no_attempts=no_attempts)

@@ -18,10 +18,9 @@
         <div class="list-group list-group-flush">
             <a href="{{ url_for("course_list", id=teacher.id) }}" class="list-group-item list-group-item-action bg-light">Предметы</a>
             <a href="{{ url_for("group_list", tid=teacher.id)}}" class="list-group-item list-group-item-action bg-light">Группы</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Overview</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Events</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Profile</a>
+            <a href="{{ url_for("all_attempts", tid=teacher.id) }}" class="list-group-item list-group-item-action bg-light">Решения</a>
             <a href="{{ url_for("logout")}}" class="list-group-item list-group-item-action bg-light">Выйти</a>
+            <a class="list-group-item bg-light">Вы вошли как {{ cuser.surname + " " + cuser.name + " " + cuser.patronymic }}</a>
         </div>
     </div>
     <!-- end sidebar -->
@@ -31,10 +30,15 @@
         <div class="container-fluid">
             <div class="row">
                 <div class="col-6">
-                    <h2 class="mt-4">
+                    <div class="row">
+                        <div class="col-12">
+                            <h2 class="mt-4">
                         Лабораторные работы по предмету {{ course.title }} {% if group_list %}группы {{ group.code }} {% endif %}
-                        <button type="submit" onClick="window.location.replace('{{ url_for("create_lab", id=teacher.id) }}')" class="btn btn-primary">Создать</button></h2>
-                        <button type="submit" onClick="window.location.replace('{{ url_for("add_existing_lab", id=teacher.id, cid=course.id) }}')" class="btn btn-primary">Добавить существующие</button></h2>
+                            </h2>
+                        </div>
+                    </div>
+                        <button type="submit" onClick="window.location.replace('{{ url_for("create_lab", id=teacher.id) }}')" class="btn btn-primary">Создать</button>
+                        <button type="submit" onClick="window.location.replace('{{ url_for("add_existing_lab", id=teacher.id, cid=course.id) }}')" class="btn btn-primary">Добавить существующие</button>
                     {% with messages = get_flashed_messages(with_categories=true) %}
                       <!-- Categories: success (green), info (blue), warning (yellow), danger (red) -->
                       {% if messages %}
@@ -52,7 +56,6 @@
                             <th scope="col">ID</th>
                             <th scope="col">Название</th>
                             {% if not group_list %}
-                            <th scope="col">Предмет</th>
                             <th scope="col">Группы</th>
                             <th scope="col"></th>
                             <th scope="col"></th>
@@ -69,7 +72,6 @@
                                 {% if not group_list %}
                                 <th scope="row">{{ lab[0] }}</th>
                                 <td>{{ lab[1] }}</td>
-                                <td>{{ lab[2] }}</td>
                                 <td>{{ lab[3] }}</td>
                                 <td><a href={{ url_for('variant_list', tid=teacher.id, cid=course.id, lid=lab[0]) }}>Варианты</a></td>
                                 <td>

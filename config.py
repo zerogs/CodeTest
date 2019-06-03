@@ -8,6 +8,7 @@ config = dict(
         'host': 'localhost',
         'database': 'dproject',
     },
+    MAX_CONTENT_SIZE = 16384,
     UPLOADS_DEFAULT_DEST='D://files/default/',
     UPLOADS_DEFAULT_URL ='http://localhost:5000/files/default/',
 

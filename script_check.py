@@ -1,11 +1,10 @@
-import os, glob, subprocess
+import subprocess
 from config import config
 
 
 def script_check(source, language, input, output):
     langdict = {
-        'python':'PYTHON_INTERPRETER_PATH',
-        'cpp' : 'GCC_COMPILER_PATH'
+        'python':'PYTHON_INTERPRETER_PATH'
     }
 
     path = config[langdict[language]]
@@ -15,10 +14,6 @@ def script_check(source, language, input, output):
     data = data[0].decode('utf-8')[:-2]
     p.kill()
     if data == output:
-        print('Completed!')
-        print(data)
         return 'Completed', data
     else:
-        print('Failed!')
-        print(data)
         return 'Failed', data

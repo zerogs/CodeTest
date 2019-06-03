@@ -19,9 +19,6 @@
         <div class="sidebar-heading">Code Test</div>
         <div class="list-group list-group-flush">
             <a href="{{ url_for("student_courses") }}" class="list-group-item list-group-item-action bg-light">Предметы</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Overview</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Events</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Profile</a>
             <a href="{{ url_for("logout")}}" class="list-group-item list-group-item-action bg-light">Выйти</a>
             <a class="list-group-item bg-light">Вы вошли как {{ cuser.surname + " " + cuser.name + " " + cuser.patronymic }}</a>
         </div>
@@ -45,8 +42,9 @@
                         <p>Программа должна считывать аргументы командной строки как входные данные, результаты возвращать в стандартный вывод.</p>
                         <div class="custom-file mb-2">
                             <label>Загрузить программу :</label>
-                            <input type="file" name="programFile" class="custom-file-input" id="customFile">
-                            <label class="custom-file-label" for="customFile">Выберите файл</label>
+                            <input type="file" name="programFile" class="custom-file-input" id="customFile" style="display: none">
+                            <span id="file-label" class="mr-2">Файл не указан</span>
+                            <button class="btn btn-primary" onClick="selectFile(event); return false;">Выберите файл</button>
                         </div>
 
                         <button type="submit" name="downloadProgram" class="btn btn-primary">Загрузить</button>
@@ -92,6 +90,18 @@
     <!-- footer -->
 
     <!-- end footer -->
+    <script type="text/javascript">
+        var input = document.getElementById('customFile');
+        var selectedFile = null;
+        input.onchange = e => {
+           selectedFile = e.target.files[0];
+           $("#file-label").html("Выбран файл " + selectedFile.name);
+        }
+        function selectFile(e) {
+            e.preventDefault();
+            input.click();
+        }
+    </script>
 </div>
 </body>
 </html>

@@ -16,11 +16,9 @@
     <div class="bg-light border-right" id="sidebar-wrapper">
         <div class="sidebar-heading">Code Test</div>
         <div class="list-group list-group-flush">
-            <a href="{{ url_for("course_list", id=cuser.id) }}" class="list-group-item list-group-item-action bg-light">Предметы</a>
-            <a href="{{ url_for("group_list", tid=cuser.id)}}" class="list-group-item list-group-item-action bg-light">Группы</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Overview</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Events</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Profile</a>
+            <a href="{{ url_for("course_list", id=teacher.id) }}" class="list-group-item list-group-item-action bg-light">Предметы</a>
+            <a href="{{ url_for("group_list", tid=teacher.id)}}" class="list-group-item list-group-item-action bg-light">Группы</a>
+            <a href="{{ url_for("all_attempts", tid=teacher.id) }}" class="list-group-item list-group-item-action bg-light">Решения</a>
             <a href="{{ url_for("logout")}}" class="list-group-item list-group-item-action bg-light">Выйти</a>
             <a class="list-group-item bg-light">Вы вошли как {{ cuser.surname + " " + cuser.name + " " + cuser.patronymic }}</a>
         </div>
@@ -60,7 +58,13 @@
                             <td>{{ data[3][1] }}</td>
                             <td>{{ data[4][1] }}</td>
                             <td><a href="{{ url_for("attempt_info", tid=cuser.id, cid=data[4][1], lid=data[3][0], vid=data[5].id, aid=data[0].id) }}">Программа</a></td>
-                            <td><a href="{{ url_for("attempt_check", tid=cuser.id, cid=data[4][1], lid=data[3][0], vid=data[5].id, aid=data[0].id) }}">Проверить</a></td>
+                            <td>
+                            {% if data[0].result == "Не проверено" %}
+                            <a href="{{ url_for("attempt_check", tid=cuser.id, cid=cid, lid=data[3][0], vid=data[5].id, aid=data[0].id) }}">Проверить</a>
+                            {% else %}
+                            <a href="{{ url_for("attempt_check", tid=cuser.id, cid=cid, lid=data[3][0], vid=data[5].id, aid=data[0].id) }}">Результат</a>
+                            {% endif %}
+                            </td>
                             <td>
                                 <a href="#"><i class="material-icons">
                                     delete

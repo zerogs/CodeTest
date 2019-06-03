@@ -20,10 +20,9 @@
         <div class="list-group list-group-flush">
             <a href="{{ url_for("course_list", id=teacher.id) }}" class="list-group-item list-group-item-action bg-light">Предметы</a>
             <a href="{{ url_for("group_list", tid=teacher.id)}}" class="list-group-item list-group-item-action bg-light">Группы</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Overview</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Events</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Profile</a>
+            <a href="{{ url_for("all_attempts", tid=teacher.id) }}" class="list-group-item list-group-item-action bg-light">Решения</a>
             <a href="{{ url_for("logout")}}" class="list-group-item list-group-item-action bg-light">Выйти</a>
+            <a class="list-group-item bg-light">Вы вошли как {{ cuser.surname + " " + cuser.name + " " + cuser.patronymic }}</a>
         </div>
     </div>
     <!-- end sidebar -->
@@ -38,11 +37,11 @@
                     <form method="post" id="testEdit">
                         <div class="form-group">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                            <label for="inputInput">Input</label>
+                            <label for="inputInput">Входные данные</label>
                             <input type="text" name="inputInput" id="inputInput" class="form-control" placeholder="{{ test.input }}">
                         </div>
                         <div class="form-group">
-                            <label for="outputInput">Output</label>
+                            <label for="outputInput">Выходные данные</label>
                             <input type="text" name="outputInput"  id="outputInput" class="form-control" placeholder="{{ test.output }}">
                         </div>
                         <button type="submit" name="update" class="btn btn-primary">Обновить</button>

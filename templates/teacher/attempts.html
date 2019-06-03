@@ -16,11 +16,9 @@
     <div class="bg-light border-right" id="sidebar-wrapper">
         <div class="sidebar-heading">Code Test</div>
         <div class="list-group list-group-flush">
-            <a href="{{ url_for("course_list", id=cuser.id) }}" class="list-group-item list-group-item-action bg-light">Предметы</a>
-            <a href="{{ url_for("group_list", tid=cuser.id)}}" class="list-group-item list-group-item-action bg-light">Группы</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Overview</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Events</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Profile</a>
+            <a href="{{ url_for("course_list", id=teacher.id) }}" class="list-group-item list-group-item-action bg-light">Предметы</a>
+            <a href="{{ url_for("group_list", tid=teacher.id)}}" class="list-group-item list-group-item-action bg-light">Группы</a>
+            <a href="{{ url_for("all_attempts", tid=teacher.id) }}" class="list-group-item list-group-item-action bg-light">Решения</a>
             <a href="{{ url_for("logout")}}" class="list-group-item list-group-item-action bg-light">Выйти</a>
             <a class="list-group-item bg-light">Вы вошли как {{ cuser.surname + " " + cuser.name + " " + cuser.patronymic }}</a>
         </div>
@@ -45,6 +43,7 @@
                             <th scope="col"></th>
                             <th scope="col"></th>
                             <th scope="col"></th>
+                            <th scope="col"></th>
                         </tr>
                         </thead>
                         <tbody>
@@ -56,9 +55,15 @@
                             <td>{{ data[1] }}</td>
                             <td>{{ data[2] }}</td>
                             <td><a href="{{ url_for("attempt_info", tid=cuser.id, cid=cid, lid=lab.id, vid=var.id, aid=data[0].id) }}">Программа</a></td>
-                            <td><a href="{{ url_for("attempt_check", tid=cuser.id, cid=cid, lid=lab.id, vid=var.id, aid=data[0].id) }}">Проверить</a></td>
                             <td>
-                                <a href="#"><i class="material-icons">
+                            {% if data[0].result == "Не проверено" %}
+                            <a href="{{ url_for("attempt_check", tid=cuser.id, cid=cid, lid=lab.id, vid=var.id, aid=data[0].id) }}">Проверить</a>
+                            {% else %}
+                            <a href="{{ url_for("attempt_check", tid=cuser.id, cid=cid, lid=lab.id, vid=var.id, aid=data[0].id) }}">Результат</a>
+                            {% endif %}
+                            </td>
+                            <td>
+                                <a href="/" onClick="setId('{{data[0].id}}', '{{ data[2] }}'); return false" data-toggle="modal" data-target="#deleteModal"><i class="material-icons">
                                     delete
                                 </i></a>
                             </td>
@@ -72,6 +77,25 @@
                         <button type="button" class="btn btn-primary">Следующая</button>
                     </div>
                 </div>
+                <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+                  <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                      <div class="modal-header">
+                        <h5 class="modal-title" id="deleteModalLabel">Удаление записи</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                          <span aria-hidden="true">&times;</span>
+                        </button>
+                      </div>
+                      <div class="modal-body">
+                        Вы действительно хотите удалить запись?
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Отмена</button>
+                        <button type="button" class="btn btn-primary" onclick="sendRequest({{ teacher.id }}, {{ cid }}, {{ lab.id }}, {{ var.id }}); return false;">Подтвердить</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
             </div>
         </div>
     </div>
@@ -83,4 +107,18 @@
     <!-- end footer -->
 </div>
 </body>
+<script type="application/javascript">
+    var current_id = 0;
+    function setId(id, name)
+    {
+        current_id = id;
+        $(".modal-body").html('Вы действительно хотите удалить попытку № ' + current_id + ' студента '+ name + '?');
+    }
+    function sendRequest(tid, cid, lid, vid) {
+        $.get("/teacher-" + tid + "/course-" + cid +"/lab-" + lid +"/variant-" + vid + "/attempt-" + current_id + "/delete", () => {
+           $("#deleteModal").modal('hide');
+        window.location.reload();
+        });
+    }
+</script>
 </html>

@@ -30,6 +30,7 @@ class Test(db.Entity):
     input = Required(str)
     output = Required(str)
     variant = Required(Variant)
+    results = Set('Result')
 
 
 class User(db.Entity):
@@ -82,7 +83,7 @@ class Attempt(db.Entity):
     studentID = Required(int)
     variant = Required(Variant)
     dt = Required(datetime)
-    result = Optional(str)
+    result = Optional('Result')
     source = Optional(str)
     language = Optional(str)
 
@@ -113,3 +114,14 @@ class Course(db.Entity):
 
 class Admin(User):
     is_admin = Required(bool)
+
+
+
+class Result(db.Entity):
+    id = PrimaryKey(int, auto=True)
+    result = Required(bool)
+    attempt = Required(Attempt)
+    error = Optional(str)
+    completed_tests = Optional(int)
+    failed_id = Optional(int)
+    tests = Set(Test)

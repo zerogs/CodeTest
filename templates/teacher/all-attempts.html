@@ -51,18 +51,18 @@
                         {% for data in table_data %}
                         <tr>
                             <th scope="row">{{ data[0].id }}</th>
-                            <td>{{ data[0].result }}</td>
+                            <td>{{ data[6] }}</td>
                             <td>{{ data[0].dt }}</td>
                             <td>{{ data[1] }}</td>
                             <td>{{ data[2] }}</td>
                             <td>{{ data[3][1] }}</td>
                             <td>{{ data[4][1] }}</td>
-                            <td><a href="{{ url_for("attempt_info", tid=cuser.id, cid=data[4][1], lid=data[3][0], vid=data[5].id, aid=data[0].id) }}">Программа</a></td>
+                            <td><a href="{{ url_for("attempt_info", tid=cuser.id, cid=data[4][0], lid=data[3][0], vid=data[5].id, aid=data[0].id) }}">Программа</a></td>
                             <td>
                             {% if data[0].result == "Не проверено" %}
-                            <a href="{{ url_for("attempt_check", tid=cuser.id, cid=cid, lid=data[3][0], vid=data[5].id, aid=data[0].id) }}">Проверить</a>
+                            <a href="{{ url_for("attempt_check", tid=cuser.id, cid=data[4][0], lid=data[3][0], vid=data[5].id, aid=data[0].id) }}">Проверить</a>
                             {% else %}
-                            <a href="{{ url_for("attempt_check", tid=cuser.id, cid=cid, lid=data[3][0], vid=data[5].id, aid=data[0].id) }}">Результат</a>
+                            <a href="{{ url_for("attempt_check", tid=cuser.id, cid=data[4][0], lid=data[3][0], vid=data[5].id, aid=data[0].id) }}">Результат</a>
                             {% endif %}
                             </td>
                             <td>

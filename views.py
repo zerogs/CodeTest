@@ -1,10 +1,9 @@
 from app import app, group_lists, ALLOWED_EXTENSIONS
 from flask import render_template, request, redirect, url_for, flash
 from flask_login import current_user, login_user, logout_user
-from models import db, Admin,User, Teacher, Student, Variant, Group, Attempt, Course, Lab, Test, generate_password_hash
+from models import db, Admin,User, Teacher, Student, Variant, Group, Attempt, Course, Lab, Test, generate_password_hash, Result
 from pony.orm import select, desc
 from werkzeug.utils import secure_filename
-from werkzeug.datastructures import FileStorage
 from datetime import datetime
 from secrets import token_hex
 from csvhandler import csv_reader
@@ -12,8 +11,9 @@ from flask import send_from_directory
 from script_check import script_check
 from shutil import rmtree
 from pathlib import Path
+from test_daemon import testing_queue
+from time import sleep
 import os
-
 
 
 def authorized():
@@ -35,14 +35,16 @@ def update_teacher_profile(id):
     if request.method == 'POST' and 'updateForm' in request.form:
         if form.get('inputPassword') != form.get('inputRepassword'):
             flash("Введённые пароли не совпадают!", "warning")
-            return render_template('teacher/registration-teacher.html', teacher=teacher)
+            return render_template('teacher/registration-teacher.html', teacher=teacher, cuser=current_user)
         else:
             teacher.login = form.get("loginInput")
             teacher.email = form.get("emailInput")
             teacher.password = generate_password_hash(form.get("inputPassword"))
             teacher.activated = True
             flash("Данные обновлены успешно!", "success")
-    return render_template('teacher/registration-teacher.html', teacher=teacher)
+            return redirect(url_for("course_list", id=teacher.id))
+
+    return render_template('teacher/registration-teacher.html', teacher=teacher, cuser=current_user)
 
 
 @app.route('/update_student/<id>', methods=['GET', 'POST'])
@@ -57,7 +59,7 @@ def update_student_profile(id):
     if request.method == 'POST' and 'updateForm' in request.form:
         if form.get('inputPassword') != form.get('inputRepassword'):
             flash("Введённые пароли не совпадают!", "warning")
-            return render_template('student/registration-student.html', student=student)
+            return render_template('student/registration-student.html', student=student, cuser=current_user)
         else:
             student.login = form.get("loginInput")
             student.email = form.get("emailInput")
@@ -67,7 +69,7 @@ def update_student_profile(id):
 
         return redirect(url_for('student_courses'))
 
-    return render_template('student/registration-student.html', student=student)
+    return render_template('student/registration-student.html', student=student, cuser=current_user)
 
 
 @app.route('/teacher-<tid>/create_course/', methods=['GET', 'POST'])
@@ -541,8 +543,14 @@ def all_attempts(tid):
     table_data = []
     for attempt in attempts:
         student = Student[attempt.studentID]
+        if attempt.result is None:
+            result = "Не проверено."
+        elif attempt.result.result == True:
+            result = "Решение верно!"
+        elif attempt.result.result == False:
+            result = "Решение неверно!"
         table_data.append((attempt, student.group.code, student.fullname, (attempt.variant.lab.id, attempt.variant.lab.title),
-                           (attempt.variant.lab.course.id, attempt.variant.lab.course.title), attempt.variant))
+                           (attempt.variant.lab.course.id, attempt.variant.lab.course.title), attempt.variant, result))
 
     return render_template('teacher/all-attempts.html',teacher=teacher, table_data=table_data, cuser=current_user)
 
@@ -598,21 +606,39 @@ def attempt_check(tid, cid, lid, vid, aid):
     var = Variant[vid]
     student = Student[attempt.studentID]
     tests = var.tests
-    res = False
-
-    prg_path = attempt.source
-    lang = attempt.language
-    counter = 0
-    for test in tests:
-        counter += 1
-        out = script_check(prg_path, lang, test.input, test.output)
-        if out[0] != "Completed":
-            attempt.result = "Решение неверно!"
-            error = [test.input, test.output, out[1], counter, len(tests), test.id]
-            return render_template('teacher/attempt-check.html', attempt=attempt, lab=lab, var=var, student=student,
-                                   error=error, cuser=current_user, res=res, teacher=teacher)
-    attempt.result = 'Решение верно!'
-    res = True
+    if attempt.result is None:
+        prg_path = attempt.source
+        lang = attempt.language
+        counter = 0
+        for test in tests:
+            counter += 1
+            out = script_check(prg_path, lang, test.input, test.output)
+            if out[0] != "Completed":
+                r = Result(
+                    tests=var.tests,
+                    result=False,
+                    attempt=attempt,
+                    error=out[1],
+                    completed_tests=counter,
+                    failed_id=test.id
+                )
+                res = False
+                error = [test.input, test.output, out[1], counter, len(tests), test.id]
+                return render_template('teacher/attempt-check.html', attempt=attempt, lab=lab, var=var, student=student,
+                                       error=error, cuser=current_user, res=res, teacher=teacher)
+        r = Result(
+            tests=var.tests,
+            result=True,
+            attempt=attempt
+        )
+    elif attempt.result.result:
+        res = True
+    elif not attempt.result.result:
+        res = False
+        test = Test[attempt.result.failed_id]
+        error = [test.input, test.output, attempt.result.error, attempt.result.completed_tests, len(attempt.variant.tests), test.id]
+        return render_template('teacher/attempt-check.html', attempt=attempt, lab=lab, var=var, student=student,
+                               error=error, cuser=current_user, res=res, teacher=teacher)
 
     return render_template('teacher/attempt-check.html', attempt=attempt, lab=lab, var=var, student=student,
                            cuser=current_user, res=res, teacher=teacher)
@@ -853,7 +879,7 @@ def group_create():
             return render_template("admin/group-create.html", cuser=current_user)
 
         try:
-            with open(filename) as obj:
+            with open(os.path.join(app.config['UPLOADED_DATA_DEST'], filename)) as obj:
                 lst = csv_reader(obj)
         except IOError:
             flash("Ошибка чтения файла!", "danger")
@@ -1043,6 +1069,9 @@ def student_lab_page(lid):
     student = Student.get(id=current_user.id)
     if not isinstance(student, Student):
         return redirect(url_for('login'))
+    #non_checked = select(a for a in Attempt if a.result is None)
+    #for a in non_checked:
+    #    testing_queue.put(a)
     lab = Lab.get(id=lid)
     var = Variant.get(student=student, lab=lab)
     if var is None:
@@ -1052,8 +1081,14 @@ def student_lab_page(lid):
         no_attempts = False
         for attempt in var.attempts:
             if attempt.studentID == student.id:
-                attempts.append(attempt)
-        attempts = sorted(attempts, key=lambda a: a.dt, reverse=True)
+                if attempt.result is None:
+                    result = "Не проверено."
+                elif attempt.result.result == True:
+                    result = "Решение верно!"
+                elif attempt.result.result == False:
+                    result = "Решение неверно!"
+                attempts.append((attempt.dt, result))
+        attempts = sorted(attempts, key=lambda a: a[0], reverse=True)
     else:
         no_attempts = True
 
@@ -1062,6 +1097,8 @@ def student_lab_page(lid):
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
             path = os.path.join(app.config['UPLOAD_FOLDER'], student.group.code, str(student.id), str(lab.id))
+            if not os.path.exists(path):
+                os.makedirs(path)
             program = Path(path + '/' + filename)
             if program.is_file():
                 filename = datetime.now().strftime('%Y-%m-%d-%H-%M-%S') + filename
@@ -1072,27 +1109,9 @@ def student_lab_page(lid):
                 dt=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                 source=os.path.join(os.getcwd(), app.config['UPLOAD_FOLDER'], student.group.code, str(student.id),
                                     str(lab.id), filename),
-                result="Не проверено",
                 language="python"
             )
-
-            attempt = a
-            lab = Lab[lid]
-            prg_path = attempt.source
-            lang = attempt.language
-            counter = 0
-            for test in var.tests:
-                counter += 1
-                out = script_check(prg_path, lang, test.input, test.output)
-                if out[0] != "Completed":
-                    attempt.result = "Решение неверно!"
-                    error = [test.input, test.output, out[1], counter, len(var.tests), test.id]
-                    return render_template('student/variant_info.html', var=var, lab=lab, attempts=attempts,
-                                           cuser=current_user,
-                                           no_attempts=no_attempts)
-
-            attempt.result = 'Решение верно!'
-            res = True
+            testing_queue.put(a)
 
     return render_template('student/variant_info.html', var=var, lab=lab, attempts=attempts, cuser=current_user,
                            no_attempts=no_attempts)

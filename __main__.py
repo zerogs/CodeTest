@@ -8,5 +8,4 @@ if __name__ == '__main__':
     db.generate_mapping(create_tables=True)
     #create_admin()
     app.run()
-    daemon_start()
 

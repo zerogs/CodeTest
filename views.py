@@ -12,7 +12,6 @@ from script_check import script_check
 from shutil import rmtree
 from pathlib import Path
 from test_daemon import testing_queue
-from time import sleep
 import os
 
 

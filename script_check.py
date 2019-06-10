@@ -1,19 +1,21 @@
 import subprocess
+from subprocess import check_output
 import shlex
 from config import config
 
 
-def script_check(source, language, input, output):
+def script_check(source, language, input, output, max_time):
     langdict = {
         'python':'PYTHON_INTERPRETER_PATH'
     }
 
     path = config[langdict[language]]
     args = path + ' ' + source + ' ' + input
-    process = subprocess.Popen(shlex.split(args), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    data = process.communicate()[0].decode('utf-8')[:-1]
-    process.kill()
-    if data == output:
+    try:
+        sout = check_output(shlex.split(args), stderr=subprocess.STDOUT, timeout=max_time, shell=True)
+    except subprocess.TimeoutExpired:
+        return 'Timeout', 'Истекло время выполнения теста!'
+    if sout == output:
         return 'Completed'
     else:
-        return 'Failed', data
+        return 'Failed', sout

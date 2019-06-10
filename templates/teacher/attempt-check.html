@@ -37,17 +37,21 @@
 					<h3 class="mt-4">Лабораторная работа: {{ lab.title }}</h3>
 					<h3 class="mt-4">Вариант #{{ var.number }}</h3>
 					<h3 class="mt-4">Студент: {{ student.fullname }}</h3>
-                    {% if res %}
+                    {% if res == 'Completed'%}
                     <p>Все тесты успешно пройдены!</p>
-                    {% else %}
+                    {% elif res == 'error' or 'timeout'%}
                         <strong>ID теста: {{ error[5] }}. Тестов пройдено {{ error[3] }} из {{ error[4] }}.</strong>
                         <p>В процессе проверки программы возникла следующая ошибка!</p>
                     <p>Входные данные:</p>
                         <pre><code>{{ error[0] }}</code></pre>
                     <p>Ожидаемые выходные данные:</p>
                         <pre><code>{{ error[1] }}</code></pre>
+                    {%  if res == 'error' %}
                     <p>Данные возвращённые программой:</p>
                         <pre><code>{{ error[2] }}</code></pre>
+                    {% elif res == 'timeout' %}
+                        <p>Превышено максимальное время выполнения программы!</p>
+                    {% endif %}
                     {% endif %}
                 </div>
             </div>

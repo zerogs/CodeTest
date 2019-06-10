@@ -21,21 +21,31 @@ def program_testing(attemptid):
         return None
     for test in tests:
         counter += 1
-        out = script_check(attempt.source, attempt.language, test.input, test.output)
-        if out[0] != "Completed":
+        out = script_check(attempt.source, attempt.language, test.input, test.output, test.max_execution_time)
+        if out[0] == "Failed":
             r = Result(
                 tests=var.tests,
-                result=False,
+                result="Failed",
                 attempt=attempt,
                 error=out[1],
                 completed_tests=counter,
                 failed_id=test.id
             )
             return 0
+        elif out[0] == 'Timeout':
+            r = Result(
+                tests=var.tests,
+                result='Timeout',
+                attempt = attempt,
+                error = out[1],
+                completed_tests = counter,
+                failed_id = test.id
+            )
+            return 0
 
     r = Result(
         tests=var.tests,
-        result=True,
+        result='Completed!',
         attempt=attempt
     )
 

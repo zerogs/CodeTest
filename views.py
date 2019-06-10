@@ -518,7 +518,7 @@ def variant_attempts(tid, cid, lid, vid):
 
     lab = Lab.get(id=lid)
     var = Variant.get(id=vid)
-    attempts = var.attempts
+    attempts = select(a for a in Attempt if a.variant == var)
     attempts = sorted(attempts, key=lambda a: a.dt, reverse=True)
     table_data = []
     for attempt in attempts:
@@ -615,25 +615,42 @@ def attempt_check(tid, cid, lid, vid, aid):
             if out[0] != "Completed":
                 r = Result(
                     tests=var.tests,
-                    result=False,
+                    result='Failed',
                     attempt=attempt,
                     error=out[1],
                     completed_tests=counter,
                     failed_id=test.id
                 )
-                res = False
+                res = 'error'
+                error = [test.input, test.output, out[1], counter, len(tests), test.id]
+                return render_template('teacher/attempt-check.html', attempt=attempt, lab=lab, var=var, student=student,
+                                       error=error, cuser=current_user, res=res, teacher=teacher)
+            elif out[0] == 'Timeout':
+                r = Result(
+                    tests=var.tests,
+                    result='Timeout',
+                    attempt=attempt,
+                    error=out[1],
+                    completed_tests=counter,
+                    failed_id=test.id
+                )
+
+                res = 'timeout'
                 error = [test.input, test.output, out[1], counter, len(tests), test.id]
                 return render_template('teacher/attempt-check.html', attempt=attempt, lab=lab, var=var, student=student,
                                        error=error, cuser=current_user, res=res, teacher=teacher)
         r = Result(
             tests=var.tests,
-            result=True,
+            result='Completed',
             attempt=attempt
         )
-    elif attempt.result.result:
-        res = True
-    elif not attempt.result.result:
-        res = False
+    elif attempt.result.result == 'Completed':
+        res = 'Completed'
+    elif attempt.result.result == 'Failed' or 'Timeout':
+        if attempt.result.result == 'Failed' :
+            res = 'error'
+        elif attempt.result.result == 'Timeout':
+            res = 'timeout'
         test = Test[attempt.result.failed_id]
         error = [test.input, test.output, attempt.result.error, attempt.result.completed_tests, len(attempt.variant.tests), test.id]
         return render_template('teacher/attempt-check.html', attempt=attempt, lab=lab, var=var, student=student,
@@ -641,6 +658,7 @@ def attempt_check(tid, cid, lid, vid, aid):
 
     return render_template('teacher/attempt-check.html', attempt=attempt, lab=lab, var=var, student=student,
                            cuser=current_user, res=res, teacher=teacher)
+
 
 @app.route('/teacher-<tid>/course-<cid>/lab-<lid>/create_variant/', methods=['GET', 'POST'])
 def create_variant(tid, cid, lid):
@@ -797,6 +815,7 @@ def create_test(tid, lid, vid):
     if request.method == 'POST' and 'create' in request.form:
         input = form.get('inputInput')
         output = form.get('outputInput')
+        time = form.get('secondsInput')
 
         if input == '':
             flash('Не указаны входные данные!', 'warning')
@@ -804,11 +823,15 @@ def create_test(tid, lid, vid):
         if output == '':
             flash('Не указаны выходные данные!', 'warning')
             return render_template('teacher/test-creation.html', teacher=teacher, lab=lab, var=var)
+        if time == '':
+            flash('Не указано максимальное время выполнения теста!', 'warning')
+            return render_template('teacher/test-creation.html', teacher=teacher, lab=lab, var=var)
 
         t = Test(
             input=input,
             output=output,
-            variant=var
+            variant=var,
+            max_execution_time=time
         )
         flash('Тест для варианта ' + str(var.number) +' успешно создан!', 'success')
 
@@ -1082,10 +1105,12 @@ def student_lab_page(lid):
             if attempt.studentID == student.id:
                 if attempt.result is None:
                     result = "Не проверено."
-                elif attempt.result.result == True:
+                elif attempt.result.result == 'Completed':
                     result = "Решение верно!"
-                elif attempt.result.result == False:
+                elif attempt.result.result == 'Failed':
                     result = "Решение неверно!"
+                elif attempt.result.result == 'Timeout':
+                    result = "Превышено время выполнения!"
                 attempts.append((attempt.dt, result))
         attempts = sorted(attempts, key=lambda a: a[0], reverse=True)
     else:

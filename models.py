@@ -31,6 +31,7 @@ class Test(db.Entity):
     output = Required(str)
     variant = Required(Variant)
     results = Set('Result')
+    max_execution_time = Required(int)
 
 
 class User(db.Entity):
@@ -119,7 +120,7 @@ class Admin(User):
 
 class Result(db.Entity):
     id = PrimaryKey(int, auto=True)
-    result = Required(bool)
+    result = Required(str)
     attempt = Required(Attempt)
     error = Optional(str)
     completed_tests = Optional(int)

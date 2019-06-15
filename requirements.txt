@@ -1,0 +1,15 @@
+cffi==1.12.3
+Click==7.0
+Flask==1.0.2
+Flask-Login==0.4.1
+Flask-Uploads==0.2.1
+Flask-WTF==0.14.2
+itsdangerous==1.1.0
+Jinja2==2.10
+MarkupSafe==1.1.1
+pony==0.7.9
+psycopg2==2.8.3
+pycparser==2.19
+six==1.12.0
+Werkzeug==0.14.1
+WTForms==2.2.1

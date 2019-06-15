@@ -1,6 +1,5 @@
 from app import app
 from views import db
-from test_daemon import daemon_start
 
 
 if __name__ == '__main__':

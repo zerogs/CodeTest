@@ -11,5 +11,5 @@ pony==0.7.9
 psycopg2==2.8.3
 pycparser==2.19
 six==1.12.0
-Werkzeug==0.14.1
+Werkzeug==0.15.3
 WTForms==2.2.1
